@@ -1,56 +1,109 @@
-ï»¿<template>
-  <section v-if="currentUser" class="grid gap-6 lg:grid-cols-2">
-    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-      <div class="flex items-center gap-4">
-        <img :src="currentUser.avatar" class="h-20 w-20 rounded-full object-cover" alt="avatar" />
-        <div>
-          <h1 class="text-2xl font-semibold text-slate-900">{{ currentUser.name }}</h1>
-          <p class="text-sm text-slate-500">{{ currentUser.role }}</p>
-          <p class="text-xs text-slate-400">@{{ currentUser.username }}</p>
+<template>
+  <section v-if="currentUser" class="space-y-8">
+    <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
+      <div class="pointer-events-none absolute -right-20 top-10 h-56 w-56 rounded-full bg-white/15 blur-3xl"></div>
+      <div class="pointer-events-none absolute -left-16 bottom-0 h-60 w-60 rounded-full bg-indigo-500/30 blur-3xl"></div>
+      <div class="relative flex flex-col gap-6 p-8 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex items-center gap-6">
+          <img :src="currentUser.avatar" class="h-24 w-24 rounded-full border-4 border-white/30 object-cover shadow-lg" alt="avatar" />
+          <div class="space-y-2">
+            <p class="text-xs uppercase tracking-[0.4em] text-white/70">Operator Profile</p>
+            <h1 class="text-3xl font-semibold">{{ currentUser.name }}</h1>
+            <p class="text-sm text-white/80">
+              {{ formatRole(currentUser.role) }} / @{{ currentUser.username }}
+            </p>
+          </div>
         </div>
-      </div>
-      <div class="mt-6 grid grid-cols-3 gap-4 text-center text-sm text-slate-500">
-        <div>
-          <p class="text-2xl font-semibold text-slate-900">{{ stats?.level ?? 1 }}</p>
-          <p>Level</p>
-        </div>
-        <div>
-          <p class="text-2xl font-semibold text-slate-900">{{ stats?.xp ?? 0 }}</p>
-          <p>XP</p>
-        </div>
-        <div>
-          <p class="text-2xl font-semibold text-slate-900">{{ stats?.tickets_closed_count ?? 0 }}</p>
-          <p>Tickets</p>
-        </div>
-      </div>
-      <div class="mt-6">
-        <h2 class="text-lg font-semibold text-slate-900">Badges</h2>
-        <div class="mt-3 flex flex-wrap gap-2 text-xs">
-          <span
-            v-for="badge in currentUser.badges"
-            :key="badge"
-            class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-600"
-          >
-            {{ badge }}
-          </span>
+        <div class="grid gap-4 text-center sm:grid-cols-3">
+          <div class="rounded-2xl border border-white/15 bg-white/5 p-4">
+            <p class="text-xs uppercase text-white/60">Level</p>
+            <p class="text-3xl font-semibold">{{ stats?.level ?? 1 }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/15 bg-white/5 p-4">
+            <p class="text-xs uppercase text-white/60">XP</p>
+            <p class="text-3xl font-semibold">{{ formatNumber(stats?.xp ?? 0) }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/15 bg-white/5 p-4">
+            <p class="text-xs uppercase text-white/60">Tickets</p>
+            <p class="text-3xl font-semibold">{{ formatNumber(stats?.tickets_closed_count ?? 0) }}</p>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-      <h2 class="text-lg font-semibold text-slate-900">Edit profile</h2>
-      <form class="mt-4 space-y-4 text-sm" @submit.prevent="save">
-        <label class="block">
-          <span class="text-xs uppercase text-slate-500">Name</span>
-          <input v-model="form.name" class="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900" />
-        </label>
-        <label class="block">
-          <span class="text-xs uppercase text-slate-500">Bio</span>
-          <textarea v-model="form.bio" rows="4" class="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900"></textarea>
-        </label>
-        <button type="submit" class="rounded-md bg-slate-900 px-4 py-2 text-white">Save</button>
-        <p v-if="saved" class="text-xs text-slate-500">Saved!</p>
-      </form>
+    <div class="grid gap-6 lg:grid-cols-3">
+      <div class="rounded-3xl border border-border bg-card p-6 shadow-lg lg:col-span-2">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Mission log</p>
+            <h2 class="text-2xl font-semibold text-foreground">Performance overview</h2>
+          </div>
+            <span class="text-xs uppercase text-muted-foreground">Streak {{ stats?.streak ?? 0 }} days</span>
+        </div>
+        <div class="mt-6 space-y-6">
+          <div class="rounded-2xl border border-muted bg-muted/50 p-4">
+            <p class="text-xs uppercase text-muted-foreground">XP progress</p>
+            <div class="mt-3">
+              <div class="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Level {{ stats?.level ?? 1 }}</span>
+                <span>{{ stats?.xp ?? 0 }} / {{ stats?.nextLevelThreshold ?? 100 }} XP</span>
+              </div>
+              <div class="mt-2 h-2 rounded-full bg-slate-200">
+                <span class="block h-2 rounded-full bg-slate-900 transition-all" :style="{ width: xpProgress + '%' }"></span>
+              </div>
+            </div>
+          </div>
+          <div class="grid gap-4 md:grid-cols-3 text-center text-sm">
+            <div class="rounded-2xl border border-border bg-white/80 p-4 shadow-sm">
+              <p class="text-4xl font-semibold text-foreground">{{ focusMetric }}</p>
+              <p class="text-xs uppercase text-muted-foreground">XP pace</p>
+            </div>
+            <div class="rounded-2xl border border-border bg-white/80 p-4 shadow-sm">
+              <p class="text-4xl font-semibold text-foreground">{{ nextBadge }}</p>
+              <p class="text-xs uppercase text-muted-foreground">Next badge</p>
+            </div>
+            <div class="rounded-2xl border border-border bg-white/80 p-4 shadow-sm">
+              <p class="text-4xl font-semibold text-foreground">{{ xpToNext }}</p>
+              <p class="text-xs uppercase text-muted-foreground">XP to level up</p>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Badges</p>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <span
+                v-for="badge in badgeList"
+                :key="badge"
+                class="rounded-full border border-border bg-muted px-4 py-1 text-xs font-medium text-muted-foreground"
+              >
+                {{ badge }}
+              </span>
+              <p v-if="badgeList.length === 0" class="text-sm text-muted-foreground">No badges yet.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-3xl border border-border bg-card p-6 shadow-lg">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Profile</p>
+            <h2 class="text-xl font-semibold text-foreground">Edit details</h2>
+          </div>
+          <span v-if="saved" class="text-xs text-emerald-600">Saved</span>
+        </div>
+        <form class="mt-6 space-y-5 text-sm" @submit.prevent="save">
+          <label class="block space-y-1">
+            <span class="text-xs uppercase text-muted-foreground">Name</span>
+            <input v-model="form.name" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" />
+          </label>
+          <label class="block space-y-1">
+            <span class="text-xs uppercase text-muted-foreground">Bio</span>
+            <textarea v-model="form.bio" rows="4" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"></textarea>
+          </label>
+          <Button type="submit" class="w-full bg-slate-900 text-white">Save changes</Button>
+        </form>
+      </div>
     </div>
   </section>
   <p v-else class="text-slate-500">No user.</p>
@@ -59,6 +112,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { Button } from '@/components/atoms/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import { useUsersStore } from '@/stores/users'
 import { useGamificationStore } from '@/stores/gamification'
@@ -85,6 +139,20 @@ watch(
 )
 
 const stats = computed(() => (currentUser.value ? gamification.userStats[currentUser.value.id] : null))
+
+const xpToNext = computed(() => Math.max(0, (stats.value?.nextLevelThreshold ?? 100) - (stats.value?.xp ?? 0)))
+const xpProgress = computed(() => {
+  const threshold = stats.value?.nextLevelThreshold ?? 100
+  if (!threshold) return 0
+  return Math.min(100, Math.round(((stats.value?.xp ?? 0) / threshold) * 100))
+})
+const badgeList = computed(() => currentUser.value?.badges ?? [])
+const focusMetric = computed(() => Math.max(stats.value?.xp ?? 0, 0))
+const nextBadge = computed(() => (badgeList.value[0] ? badgeList.value[0] : 'No badge'))
+
+const numberFormatter = new Intl.NumberFormat('en-US')
+const formatNumber = (value = 0) => numberFormatter.format(value ?? 0)
+const formatRole = (role) => (role ? role.replace(/_/g, ' ') : '—')
 
 const save = () => {
   if (!currentUser.value) return

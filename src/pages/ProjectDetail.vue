@@ -1,74 +1,144 @@
-﻿<template>
-  <section v-if="project" class="grid gap-6 lg:grid-cols-[260px_1fr_260px]">
-    <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-card">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-slate-900">Members</h2>
-        <button class="text-xs text-slate-500 underline" @click="showInvite = true">Invite</button>
-      </div>
-      <div class="space-y-3">
-        <div
-          v-for="member in project.members"
-          :key="member.id"
-          class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
-        >
-          <div>
-            <p class="text-sm text-slate-900">{{ resolveUser(member.id)?.name ?? member.name }}</p>
-            <p class="text-xs uppercase text-slate-500">{{ member.role }}</p>
+<template>
+  <section v-if="project" class="space-y-8">
+    <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
+      <div class="pointer-events-none absolute -right-16 top-8 h-56 w-56 rounded-full bg-white/10 blur-3xl"></div>
+      <div class="pointer-events-none absolute -left-20 bottom-0 h-48 w-48 rounded-full bg-indigo-500/30 blur-3xl"></div>
+      <div class="relative grid gap-8 p-8 lg:grid-cols-[1.2fr_0.8fr]">
+        <div class="space-y-4">
+          <p class="text-xs uppercase tracking-[0.4em] text-white/70">{{ projectStatusLabel }}</p>
+          <div class="flex flex-wrap items-center gap-4">
+            <div>
+              <h1 class="text-3xl font-semibold">{{ project.name }}</h1>
+              <p class="text-sm text-white/70">{{ project.description }}</p>
+            </div>
+            <span class="rounded-full border border-white/30 px-3 py-1 text-xs uppercase">{{ boardHealth }}</span>
           </div>
-          <span class="text-xl text-slate-400">•</span>
+          <div class="flex flex-wrap gap-4 text-sm">
+            <div class="min-w-[120px]">
+              <p class="text-xs uppercase text-white/60">Members</p>
+              <p class="text-3xl font-semibold">{{ memberCount }}</p>
+            </div>
+            <div class="min-w-[120px]">
+              <p class="text-xs uppercase text-white/60">Tickets</p>
+              <p class="text-3xl font-semibold">{{ totalTickets }}</p>
+            </div>
+            <div class="min-w-[120px]">
+              <p class="text-xs uppercase text-white/60">Open</p>
+              <p class="text-3xl font-semibold">{{ openTickets }}</p>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-        <p>Active invites</p>
-        <ul class="mt-2 space-y-1">
-          <li v-for="invite in project.invites" :key="invite.code" class="flex justify-between text-slate-600">
-            <span>{{ invite.code }}</span>
-            <span>{{ invite.uses }}/{{ invite.maxUses }}</span>
-          </li>
-          <li v-if="project.invites.length === 0" class="text-slate-400">None yet</li>
-        </ul>
+        <div class="grid gap-4 text-sm md:grid-cols-3">
+          <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
+            <p class="text-xs uppercase text-white/60">Last activity</p>
+            <p class="text-lg font-semibold">{{ lastActivity?.text ?? 'Belum ada aktivitas' }}</p>
+            <p class="text-xs text-white/70">{{ lastActivity?.timestamp ?? '-' }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
+            <p class="text-xs uppercase text-white/60">Invites</p>
+            <p class="text-3xl font-semibold">{{ project.invites.length }}</p>
+            <p class="text-xs text-white/70">Aktif saat ini</p>
+          </div>
+          <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
+            <p class="text-xs uppercase text-white/60">Aksi</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" class="border border-white/30 bg-white/15 text-white hover:bg-white/25" @click="showInvite = true">
+                Invite
+              </Button>
+              <RouterLink to="/tickets">
+                <Button variant="ghost" size="sm" class="text-white hover:bg-white/10">Tiket</Button>
+              </RouterLink>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="space-y-4">
-      <header>
-        <h1 class="text-2xl font-semibold text-slate-900">{{ project.name }}</h1>
-        <p class="text-sm text-slate-500">{{ project.description }}</p>
-      </header>
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div
-          v-for="status in statuses"
-          :key="status.value"
-          class="rounded-xl border border-slate-200 bg-white p-3 shadow-card"
-        >
-          <div class="mb-3 flex items-center justify-between text-xs text-slate-500">
-            <span class="font-semibold uppercase text-slate-700">{{ status.label }}</span>
-            <span>{{ ticketsByStatus(status.value).length }}</span>
+    <div class="grid gap-6 lg:grid-cols-[300px_1fr_280px]">
+      <div class="space-y-4">
+        <div class="rounded-3xl border border-border bg-card p-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Squad</p>
+              <h2 class="text-lg font-semibold text-foreground">Anggota</h2>
+            </div>
+            <Button variant="ghost" size="sm" class="text-muted-foreground" @click="showInvite = true">Invite</Button>
           </div>
-          <div :ref="setColumnRef(status.value)" class="space-y-3" :data-status="status.value">
-            <article
-              v-for="ticket in ticketsByStatus(status.value)"
-              :key="ticket.id"
-              class="cursor-grab rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm"
-              :data-id="ticket.id"
+          <div class="mt-4 space-y-3">
+            <div
+              v-for="member in project.members"
+              :key="member.id"
+              class="flex items-center justify-between rounded-2xl border border-muted bg-muted/60 px-3 py-2 text-sm"
             >
-              <p class="font-semibold text-slate-900">{{ ticket.title }}</p>
-              <p class="text-xs text-slate-500">{{ ticket.priority }} • {{ ticket.type }}</p>
-              <button class="mt-2 text-xs text-slate-700 underline" @click="openTicket(ticket.id)">Open</button>
-            </article>
+              <div>
+                <p class="font-semibold text-foreground">{{ resolveUser(member.id)?.name ?? member.name }}</p>
+                <p class="text-xs uppercase text-muted-foreground">{{ member.role }}</p>
+              </div>
+              <span class="text-xs text-muted-foreground">{{ statsBadge(member) }}</span>
+            </div>
+            <p v-if="project.members.length === 0" class="text-sm text-muted-foreground">Belum ada anggota.</p>
+          </div>
+        </div>
+
+        <div class="rounded-3xl border border-border bg-card p-5 text-sm">
+          <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Active invites</p>
+          <ul class="mt-3 space-y-2">
+            <li v-for="invite in project.invites" :key="invite.code" class="flex items-center justify-between rounded-2xl border border-muted bg-muted/40 px-3 py-2">
+              <span class="font-mono text-foreground">{{ invite.code }}</span>
+              <span class="text-xs text-muted-foreground">{{ invite.uses }}/{{ invite.maxUses }}</span>
+            </li>
+            <li v-if="project.invites.length === 0" class="text-xs text-muted-foreground">Belum ada kode.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Board</p>
+            <h2 class="text-xl font-semibold text-foreground">Ticket pipeline</h2>
+          </div>
+          <p class="text-xs text-muted-foreground">{{ totalTickets }} tickets · {{ openTickets }} open</p>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div
+            v-for="status in statuses"
+            :key="status.value"
+            class="rounded-2xl border border-border bg-background/80 p-4 shadow-card"
+          >
+            <div class="mb-4 flex items-center justify-between text-xs uppercase text-muted-foreground">
+              <span class="font-semibold text-foreground">{{ status.label }}</span>
+              <span class="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">{{ ticketsByStatus(status.value).length }}</span>
+            </div>
+            <div :ref="setColumnRef(status.value)" class="space-y-3" :data-status="status.value">
+              <article
+                v-for="ticket in ticketsByStatus(status.value)"
+                :key="ticket.id"
+                class="cursor-grab rounded-2xl border border-border bg-white/95 p-4 text-sm shadow-sm transition hover:border-primary/50 hover:shadow-lg"
+                :data-id="ticket.id"
+              >
+                <p class="font-semibold text-foreground">{{ ticket.title }}</p>
+                <p class="text-xs text-muted-foreground capitalize">{{ ticket.priority }} / {{ ticket.type }}</p>
+                <button class="mt-2 text-xs text-primary underline" @click="openTicket(ticket.id)">Open ticket</button>
+              </article>
+              <p v-if="ticketsByStatus(status.value).length === 0" class="text-xs text-muted-foreground">Belum ada tiket.</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-card">
-      <h2 class="text-lg font-semibold text-slate-900">Activity</h2>
-      <ul class="space-y-3">
-        <li v-for="item in project.activity" :key="item.id" class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <p class="text-slate-700">{{ item.text }}</p>
-          <p class="text-xs text-slate-500">{{ item.timestamp }}</p>
-        </li>
-      </ul>
+      <div class="space-y-4">
+        <div class="rounded-3xl border border-border bg-card p-5">
+          <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Activity</p>
+          <ul class="mt-4 space-y-3">
+            <li v-for="item in project.activity" :key="item.id" class="rounded-2xl border border-muted bg-muted/40 p-3 text-sm">
+              <p class="font-semibold text-foreground">{{ item.text }}</p>
+              <p class="text-xs text-muted-foreground">{{ item.timestamp }}</p>
+            </li>
+            <li v-if="project.activity.length === 0" class="text-sm text-muted-foreground">Belum ada aktivitas.</li>
+          </ul>
+        </div>
+      </div>
     </div>
 
     <InviteModal :open="showInvite" :invite-code="latestInvite" @close="showInvite = false" @generate="generateInvite" />
@@ -78,9 +148,10 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import Sortable from 'sortablejs'
-import InviteModal from '@/components/InviteModal.vue'
+import InviteModal from '@/components/molecules/InviteModal.vue'
+import { Button } from '@/components/atoms/ui/button'
 import { useProjectsStore } from '@/stores/projects'
 import { useTicketsStore } from '@/stores/tickets'
 import { useUsersStore } from '@/stores/users'
@@ -120,9 +191,12 @@ const initSortable = () => {
     const el = columnRefs[status]
     if (!el) return
     const sortable = new Sortable(el, {
-      group: 'tickets',
-      animation: 150,
-      onEnd: (evt) => handleDrop(evt, status),
+      group: 'project-board',
+      animation: 180,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      dragClass: 'sortable-drag',
+      onEnd: (evt) => handleDrop(evt),
     })
     sortables.push(sortable)
   })
@@ -135,10 +209,12 @@ const destroySortable = () => {
   }
 }
 
-const handleDrop = (evt, status) => {
+const handleDrop = (evt) => {
   const ticketId = evt.item?.dataset?.id
-  if (!ticketId || evt.from.dataset.status === status) return
-  ticketsStore.updateTicketStatus(ticketId, status, auth.currentUser?.id)
+  const fromStatus = evt.from?.dataset?.status
+  const toStatus = evt.to?.dataset?.status
+  if (!ticketId || !toStatus || fromStatus === toStatus) return
+  ticketsStore.updateTicketStatus(ticketId, toStatus, auth.currentUser?.id)
 }
 
 const openTicket = (ticketId) => router.push(`/tickets/${ticketId}`)
@@ -167,4 +243,37 @@ const generateInvite = ({ maxUses, expiryDays }) => {
 const latestInvite = ref('')
 
 const resolveUser = (id) => usersStore.getById(id)
+
+const memberCount = computed(() => project.value?.members?.length ?? 0)
+const totalTickets = computed(() =>
+  statuses.reduce((sum, status) => sum + ticketsByStatus(status.value).length, 0)
+)
+const openTickets = computed(() =>
+  statuses
+    .filter((status) => status.value !== 'done')
+    .reduce((sum, status) => sum + ticketsByStatus(status.value).length, 0)
+)
+const lastActivity = computed(() => project.value?.activity?.[0] ?? null)
+const projectStatusLabel = computed(() => project.value?.status ?? 'Active')
+const boardHealth = computed(() => {
+  if (!totalTickets.value) return 'No tickets'
+  const ratio = openTickets.value / totalTickets.value
+  if (ratio > 0.75) return 'High load'
+  if (ratio > 0.4) return 'Balanced'
+  return 'Chill'
+})
+const statsBadge = (member) => (member.role === 'admin' ? 'Owner' : 'Member')
 </script>
+
+<style scoped>
+.sortable-ghost {
+  opacity: 0.6;
+  transform: scale(0.98);
+}
+.sortable-chosen {
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+}
+.sortable-drag {
+  cursor: grabbing !important;
+}
+</style>

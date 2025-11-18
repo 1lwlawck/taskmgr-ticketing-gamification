@@ -44,7 +44,7 @@
         <p class="text-sm text-muted-foreground">Tap open to jump into the board.</p>
       </div>
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <ProjectCard v-for="project in projects" :key="project.id" :project="project" @open="openProject" />
+        <ProjectCard v-for="project in projects" :key="project.id" :project="project" />
         <p v-if="projects.length === 0" class="text-sm text-muted-foreground">No projects yet. Create one to get started.</p>
       </div>
     </div>
@@ -110,7 +110,6 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import AppCard from '@/components/molecules/AppCard.vue'
 import ProjectCard from '@/components/molecules/ProjectCard.vue'
@@ -119,7 +118,6 @@ import { useAuthStore } from '@/stores/auth'
 import { Input } from '@/components/atoms/ui/input'
 import { Button } from '@/components/atoms/ui/button'
 
-const router = useRouter()
 const projectsStore = useProjectsStore()
 const auth = useAuthStore()
 const { projects } = storeToRefs(projectsStore)

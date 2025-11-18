@@ -1,38 +1,49 @@
 ﻿<template>
-  <div class="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 dark:bg-slate-950 dark:text-slate-100">
-    <div class="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-600 shadow-xl dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-      <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Ticket Ops</p>
-        <h1 class="text-2xl font-semibold text-slate-900">Welcome back</h1>
-        <p class="text-slate-500">Use the demo logins (avery/devon/parker) or register a new account.</p>
+  <div class="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+    <div class="w-full max-w-md space-y-6 rounded-3xl border border-border bg-card p-8 shadow-lg">
+      <div class="space-y-2">
+        <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Ticket Ops</p>
+        <h1 class="text-3xl font-semibold text-foreground">Welcome back</h1>
+        <p class="text-sm text-muted-foreground">
+          Use one of the demo logins or register a new account to jump into the dashboard.
+        </p>
       </div>
 
-      <form class="space-y-4" @submit.prevent="handleLogin">
-        <label class="block">
-          <span class="text-xs uppercase text-slate-500">Username</span>
-          <input
-            v-model="form.username"
-            required
-            class="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900 focus:outline-none"
-          />
-        </label>
-        <label class="block">
-          <span class="text-xs uppercase text-slate-500">Password</span>
-          <input
-            v-model="form.password"
-            type="password"
-            required
-            class="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900 focus:outline-none"
-          />
-        </label>
-        <p v-if="error" class="text-sm text-slate-500">{{ error }}</p>
-        <button type="submit" class="w-full rounded-md bg-slate-900 px-4 py-2 font-semibold text-white">Sign in</button>
+      <form class="space-y-5" @submit.prevent="handleLogin">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-muted-foreground">Username</label>
+          <Input v-model="form.username" placeholder="Enter username" required class="bg-transparent" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-muted-foreground">Password</label>
+          <div class="relative">
+            <Input
+              v-model="form.password"
+              :type="showPassword ? 'text' : 'password'"
+              placeholder="••••••••"
+              required
+              class="bg-transparent pr-10"
+            />
+            <button
+              type="button"
+              class="absolute inset-y-0 right-3 flex items-center text-muted-foreground transition hover:text-foreground focus:outline-none"
+              @click="togglePasswordVisibility"
+            >
+              <component :is="showPassword ? EyeOff : Eye" class="h-4 w-4" />
+              <span class="sr-only">{{ showPassword ? 'Hide password' : 'Show password' }}</span>
+            </button>
+          </div>
+        </div>
+        <p v-if="error" class="text-xs text-destructive text-right">{{ error }}</p>
+        <Button type="submit" class="w-full" size="lg">Sign in</Button>
       </form>
 
-      <p class="text-center text-xs text-slate-500">
-        Need an account?
-        <RouterLink to="/register" class="text-slate-900 underline">Register</RouterLink>
-      </p>
+      <div class="flex items-center justify-between text-xs text-muted-foreground">
+        <span>Need an account?</span>
+        <RouterLink to="/register">
+          <Button variant="ghost" size="sm">Register</Button>
+        </RouterLink>
+      </div>
     </div>
   </div>
 </template>
@@ -41,11 +52,19 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { Input } from '@/components/atoms/ui/input'
+import { Button } from '@/components/atoms/ui/button'
+import { Eye, EyeOff } from 'lucide-vue-next'
 
 const router = useRouter()
 const auth = useAuthStore()
 const form = reactive({ username: '', password: '' })
 const error = ref('')
+const showPassword = ref(false)
+
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value
+}
 
 const handleLogin = async () => {
   try {

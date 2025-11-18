@@ -1,0 +1,100 @@
+<template>
+  <header class="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 shadow-sm">
+    <div class="flex items-center gap-3">
+      <button class="text-slate-500 lg:hidden" @click="toggleSidebar">?</button>
+
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Search</p>
+        <div class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-1 text-sm text-slate-600">
+          <span>?</span>
+          <input
+            type="text"
+            class="flex-1 bg-transparent placeholder-slate-400 focus:outline-none"
+            placeholder="Tickets, projects, users"
+            v-model="search"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <!-- NOTIFICATION -->
+      <button
+        class="relative rounded-full border border-slate-200 p-2 text-slate-500 transition hover:border-slate-400 hover:text-slate-900"
+        title="Notifications"
+      >
+        <!-- Bell Icon -->
+        <span class="h-4 w-4 flex">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M15 17h-6a2 2 0 0 1-2-2v-4a6 6 0 1 1 12 0v4a2 2 0 0 1-2 2z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            />
+            <path
+              d="M13 21h-2a2 2 0 0 0 4 0h-2z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+
+        <span class="absolute -right-1 -top-1 inline-flex h-3 w-3 rounded-full bg-slate-900"></span>
+      </button>
+
+      <!-- USER DROPDOWN -->
+      <div class="relative">
+        <button
+          class="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-sm text-slate-700 transition"
+          @click="toggleMenu"
+        >
+          <img :src="avatar" alt="avatar" class="h-8 w-8 rounded-full object-cover" />
+          <span>{{ currentUser?.name }}</span>
+        </button>
+
+        <div
+          v-if="showMenu"
+          class="absolute right-0 mt-2 w-40 rounded-md border border-slate-200 bg-white py-2 text-sm shadow-lg"
+        >
+          <button class="block w-full px-4 py-2 text-left hover:bg-slate-50" @click="goProfile">
+            Profile
+          </button>
+          <button class="block w-full px-4 py-2 text-left hover:bg-slate-50" @click="handleLogout">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { storeToRefs } from 'pinia'
+import { useSidebar } from '@/components/atoms/ui/sidebar'
+
+const search = ref('')
+const showMenu = ref(false)
+
+const router = useRouter()
+const auth = useAuthStore()
+const { currentUser } = storeToRefs(auth)
+
+const fallbackAvatar = new URL('../assets/avatars/avatar-1.svg', import.meta.url).href
+const avatar = computed(() => currentUser.value?.avatar ?? fallbackAvatar)
+
+const toggleMenu = () => (showMenu.value = !showMenu.value)
+
+const handleLogout = () => {
+  auth.logout()
+  showMenu.value = false
+  router.push('/login')
+}
+
+const goProfile = () => {
+  router.push('/profile')
+  showMenu.value = false
+}
+
+const { toggleSidebar } = useSidebar()
+</script>

@@ -1,47 +1,52 @@
 ﻿<template>
-  <div class="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 dark:bg-slate-950 dark:text-slate-100">
-    <div class="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-600 shadow-xl dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-      <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Ticket Ops</p>
-        <h1 class="text-2xl font-semibold text-slate-900">Create account</h1>
-        <p class="text-slate-500">First registered user becomes admin automatically.</p>
+  <div class="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+    <div class="w-full max-w-md space-y-6 rounded-3xl border border-border bg-card p-8 shadow-lg">
+      <div class="space-y-2">
+        <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Ticket Ops</p>
+        <h1 class="text-3xl font-semibold text-foreground">Create account</h1>
+        <p class="text-sm text-muted-foreground">The first registered user becomes admin automatically.</p>
       </div>
 
-      <form class="space-y-4" @submit.prevent="handleRegister">
-        <label class="block">
-          <span class="text-xs uppercase text-slate-500">Name</span>
-          <input
-            v-model="form.name"
-            required
-            class="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900 focus:outline-none"
-          />
-        </label>
-        <label class="block">
-          <span class="text-xs uppercase text-slate-500">Username</span>
-          <input
-            v-model="form.username"
-            required
-            class="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900 focus:outline-none"
-          />
-        </label>
-        <label class="block">
-          <span class="text-xs uppercase text-slate-500">Password</span>
-          <input
-            v-model="form.password"
-            type="password"
-            minlength="4"
-            required
-            class="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900 focus:outline-none"
-          />
-        </label>
-        <p v-if="error" class="text-sm text-slate-500">{{ error }}</p>
-        <button type="submit" class="w-full rounded-md bg-slate-900 px-4 py-2 font-semibold text-white">Register</button>
+      <form class="space-y-5" @submit.prevent="handleRegister">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-muted-foreground">Name</label>
+          <Input v-model="form.name" placeholder="Full name" required class="bg-transparent" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-muted-foreground">Username</label>
+          <Input v-model="form.username" placeholder="Choose a username" required class="bg-transparent" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold uppercase text-muted-foreground">Password</label>
+          <div class="relative">
+            <Input
+              v-model="form.password"
+              :type="showPassword ? 'text' : 'password'"
+              minlength="4"
+              placeholder="Create a password"
+              required
+              class="bg-transparent pr-10"
+            />
+            <button
+              type="button"
+              class="absolute inset-y-0 right-3 flex items-center text-muted-foreground transition hover:text-foreground focus:outline-none"
+              @click="togglePasswordVisibility"
+            >
+              <component :is="showPassword ? EyeOff : Eye" class="h-4 w-4" />
+              <span class="sr-only">{{ showPassword ? 'Hide password' : 'Show password' }}</span>
+            </button>
+          </div>
+        </div>
+        <p v-if="error" class="text-xs text-destructive text-right">{{ error }}</p>
+        <Button type="submit" class="w-full" size="lg">Register</Button>
       </form>
 
-      <p class="text-center text-xs text-slate-500">
-        Already registered?
-        <RouterLink to="/login" class="text-slate-900 underline">Login</RouterLink>
-      </p>
+      <div class="flex items-center justify-between text-xs text-muted-foreground">
+        <span>Already registered?</span>
+        <RouterLink to="/login">
+          <Button variant="ghost" size="sm">Login</Button>
+        </RouterLink>
+      </div>
     </div>
   </div>
 </template>
@@ -50,11 +55,19 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { Input } from '@/components/atoms/ui/input'
+import { Button } from '@/components/atoms/ui/button'
+import { Eye, EyeOff } from 'lucide-vue-next'
 
 const router = useRouter()
 const auth = useAuthStore()
 const form = reactive({ name: '', username: '', password: '' })
 const error = ref('')
+const showPassword = ref(false)
+
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value
+}
 
 const handleRegister = async () => {
   if (!form.name || !form.username || !form.password) {

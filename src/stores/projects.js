@@ -4,6 +4,7 @@ import { STORAGE_KEYS, TICKET_STATUSES } from '@/utils/constants'
 import { generateId, generateCode, formatDate } from '@/utils/helpers'
 import { useAuditStore } from './audit'
 import { useUsersStore } from './users'
+import { useAuthStore } from './auth'
 
 const defaultProjects = [
   {
@@ -38,6 +39,11 @@ export const useProjectsStore = defineStore('projects', {
   actions: {
     // TODO: wire this up to project service once APIs are available (create/read/update).
     createProject(payload) {
+      const authStore = useAuthStore()
+      const role = authStore.currentUser?.role ?? ''
+      if (!['admin', 'project_manager'].includes(role)) {
+        throw new Error('Hanya admin atau project manager yang boleh membuat project')
+      }
       const project = {
         id: generateId('project'),
         name: payload.name,
