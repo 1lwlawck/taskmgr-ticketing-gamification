@@ -43,7 +43,7 @@
       <!-- USER DROPDOWN -->
       <div class="relative">
         <button
-          class="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-sm text-slate-700 transition"
+          class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-1 text-sm text-slate-700 transition"
           @click="toggleMenu"
         >
           <img :src="avatar" alt="avatar" class="h-8 w-8 rounded-full object-cover" />

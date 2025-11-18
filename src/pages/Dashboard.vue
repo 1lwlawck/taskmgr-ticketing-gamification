@@ -121,17 +121,22 @@
       </AppCard>
 
       <AppCard title="Weekly productivity" description="Ticket closures (last 7 days)">
-        <ChartLegend :items="chartLegendItems" class="mb-4" />
-        <VisXYContainer :height="220" :margin="{ top: 10, right: 10, bottom: 10, left: 10 }">
+        <div class="rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          <p>Daily output vs goal</p>
+          <p class="text-xs">Goal 5 tickets/day</p>
+        </div>
+        <ChartLegend :items="chartLegendItems" class="my-4" />
+        <VisXYContainer :height="240" :margin="{ top: 24, right: 16, bottom: 24, left: 0 }">
           <VisStackedBar
             :data="chartPoints"
             :x="xAccessor"
             :y="yAccessor"
             :color="chartColors[0]"
-            :rounded-corners="4"
-            :bar-padding="0.3"
-            :duration="400"
+            :rounded-corners="6"
+            :bar-padding="0.2"
+            :duration="500"
           />
+          <VisLine :data="goalPoints" :x="xAccessor" :y="goalAccessor" color="#94a3b8" :dash-pattern="[4,4]" />
           <VisAxis type="x" :tick-format="formatXAxis" />
           <VisAxis type="y" />
           <ChartCrosshair :colors="chartColors" :index="chartIndex" :items="chartLegendItems" />
@@ -204,6 +209,7 @@ import { formatDate } from '@/utils/helpers'
 const router = useRouter()
 const auth = useAuthStore()
 const { currentUser } = storeToRefs(auth)
+
 const gamification = useGamificationStore()
 const { userStats } = storeToRefs(gamification)
 const ticketsStore = useTicketsStore()
@@ -301,6 +307,13 @@ const productivityData = ref([
 const chartPoints = computed(() =>
   productivityData.value.map((entry, index) => ({ ...entry, position: index }))
 )
+
+// goalPoints provides a constant goal line (e.g. goal 5 tickets/day) aligned with chartPoints
+const goalPoints = computed(() =>
+  productivityData.value.map((entry, index) => ({ ...entry, position: index, value: 5 }))
+)
+const goalAccessor = (d) => d.value
+
 const chartColors = defaultColors(1)
 const chartLegendItems = computed<BulletLegendItemInterface[]>(() => [
   { name: 'Tickets closed', color: chartColors[0] },
