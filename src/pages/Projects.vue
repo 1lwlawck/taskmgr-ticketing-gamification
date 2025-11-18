@@ -1,66 +1,107 @@
-﻿<template>
-  <section class="space-y-4 dark:text-slate-100">
-    <div class="flex flex-wrap items-center justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-semibold text-slate-900">Projects</h1>
-        <p class="text-sm text-slate-500">Plan sprints, manage invites, and track activity.</p>
-      </div>
-      <div class="flex gap-3">
-        <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100" @click="showJoin = true">
-          Join Project
-        </button>
-        <button class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm" @click="showModal = true">
-          Create Project
-        </button>
+<template>
+  <section class="space-y-8">
+    <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
+      <div class="pointer-events-none absolute -right-24 top-8 h-56 w-56 rounded-full bg-white/15 blur-3xl"></div>
+      <div class="pointer-events-none absolute -left-16 bottom-0 h-60 w-60 rounded-full bg-indigo-500/30 blur-3xl"></div>
+      <div class="relative flex flex-col gap-6 p-8 lg:flex-row lg:items-center lg:justify-between">
+        <div class="space-y-4">
+          <p class="text-xs uppercase tracking-[0.4em] text-white/70">Squad initiatives</p>
+          <h1 class="text-3xl font-semibold">Projects</h1>
+          <p class="text-sm text-white/80">
+            {{ projects.length }} live programs / {{ totalTickets }} tracked tickets / {{ activeProjects }} active this week
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <Button variant="secondary" class="border border-white/30 bg-white/15 text-white hover:bg-white/25" @click="showJoin = true">
+            Join project
+          </Button>
+          <Button class="bg-white text-slate-900" @click="showModal = true">Create project</Button>
+        </div>
       </div>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <ProjectCard v-for="project in projects" :key="project.id" :project="project" @open="openProject" />
+    <div class="grid gap-6 md:grid-cols-3">
+      <AppCard title="Active" description="Projects currently moving">
+        <p class="text-4xl font-semibold text-foreground">{{ activeProjects }}</p>
+        <p class="text-sm text-muted-foreground">{{ Math.round((activeProjects / projects.length || 0) * 100) }}% of total</p>
+      </AppCard>
+      <AppCard title="Backlog" description="On hold or planning">
+        <p class="text-4xl font-semibold text-foreground">{{ backlogProjects }}</p>
+        <p class="text-sm text-muted-foreground">Awaiting kickoff.</p>
+      </AppCard>
+      <AppCard title="Tickets" description="Total tickets attached to projects">
+        <p class="text-4xl font-semibold text-foreground">{{ totalTickets }}</p>
+        <p class="text-sm text-muted-foreground">Across every board.</p>
+      </AppCard>
     </div>
 
-    <div v-if="showModal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4 backdrop-blur">
-      <div class="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 text-sm shadow-xl dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-        <h2 class="text-xl font-semibold text-slate-900">New project</h2>
-        <form class="mt-4 space-y-4" @submit.prevent="handleCreate">
-          <label class="block">
-            <span class="text-xs uppercase text-slate-500">Name</span>
-            <input
+    <div class="space-y-4">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Portfolio</p>
+          <h2 class="text-xl font-semibold text-foreground">All projects</h2>
+        </div>
+        <p class="text-sm text-muted-foreground">Tap open to jump into the board.</p>
+      </div>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <ProjectCard v-for="project in projects" :key="project.id" :project="project" @open="openProject" />
+        <p v-if="projects.length === 0" class="text-sm text-muted-foreground">No projects yet. Create one to get started.</p>
+      </div>
+    </div>
+
+    <div v-if="showModal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 backdrop-blur">
+      <div class="w-full max-w-lg rounded-3xl border border-border bg-card p-6 text-sm shadow-2xl">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Create</p>
+            <h2 class="text-xl font-semibold text-foreground">New project</h2>
+          </div>
+          <button class="text-sm text-muted-foreground" @click="resetModal">Close</button>
+        </div>
+        <form class="mt-6 space-y-4" @submit.prevent="handleCreate">
+          <label class="block space-y-1">
+            <span class="text-xs uppercase text-muted-foreground">Name</span>
+            <Input
               v-model="form.name"
               required
-            class="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"
             />
           </label>
-          <label class="block">
-            <span class="text-xs uppercase text-slate-500">Description</span>
+          <label class="block space-y-1">
+            <span class="text-xs uppercase text-muted-foreground">Description</span>
             <textarea
               v-model="form.description"
               rows="3"
-            class="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+            class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"
             ></textarea>
           </label>
           <div class="flex justify-end gap-2">
-            <button type="button" class="rounded-md px-4 py-2 text-slate-400" @click="resetModal">Cancel</button>
-            <button type="submit" class="rounded-md bg-slate-900 px-4 py-2 text-white">Create</button>
+            <Button type="button" variant="ghost" size="sm" class="text-muted-foreground" @click="resetModal">Cancel</Button>
+            <Button type="submit" size="sm">Create</Button>
           </div>
         </form>
       </div>
     </div>
 
     <div v-if="showJoin" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur">
-      <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-sm shadow-xl dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-        <h2 class="text-xl font-semibold text-slate-900 dark:text-white">Join via invite code</h2>
-        <p class="text-sm text-slate-500 dark:text-slate-400">Enter the code provided by a project owner.</p>
+      <div class="w-full max-w-md rounded-3xl border border-border bg-card p-6 text-sm shadow-2xl">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Join</p>
+            <h2 class="text-xl font-semibold text-foreground">Invite code</h2>
+          </div>
+          <button class="text-sm text-muted-foreground" @click="closeJoin">Close</button>
+        </div>
         <form class="space-y-3 pt-4" @submit.prevent="handleJoin">
-          <label class="block">
-            <span class="text-xs uppercase text-slate-500 dark:text-slate-400">Invite code</span>
-            <input v-model.trim="joinCode" class="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+          <label class="block space-y-1">
+            <span class="text-xs uppercase text-muted-foreground">Invite code</span>
+            <Input v-model.trim="joinCode" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" />
           </label>
           <div class="flex justify-end gap-2">
-            <button type="button" class="rounded-md px-4 py-2 text-slate-600 hover:text-slate-900" @click="closeJoin">Cancel</button>
-            <button type="submit" class="rounded-md bg-slate-900 px-4 py-2 text-white">Join</button>
+            <Button type="button" variant="ghost" size="sm" class="text-muted-foreground" @click="closeJoin">Cancel</Button>
+            <Button type="submit" size="sm">Join</Button>
           </div>
-          <p v-if="joinMessage" :class="successJoin ? 'text-green-500' : 'text-red-500'">{{ joinMessage }}</p>
+          <p v-if="joinMessage" :class="successJoin ? 'text-emerald-500' : 'text-rose-500'">{{ joinMessage }}</p>
         </form>
       </div>
     </div>
@@ -71,9 +112,12 @@
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import ProjectCard from '@/components/ProjectCard.vue'
+import AppCard from '@/components/molecules/AppCard.vue'
+import ProjectCard from '@/components/molecules/ProjectCard.vue'
 import { useProjectsStore } from '@/stores/projects'
 import { useAuthStore } from '@/stores/auth'
+import { Input } from '@/components/atoms/ui/input'
+import { Button } from '@/components/atoms/ui/button'
 
 const router = useRouter()
 const projectsStore = useProjectsStore()
@@ -86,7 +130,11 @@ const joinMessage = ref('')
 const successJoin = ref(false)
 const form = reactive({ name: '', description: '' })
 
-const openProject = (id) => router.push(`/projects/${id}`)
+const totalTickets = computed(() => projects.value.reduce((sum, project) => sum + (project.tickets?.length ?? 0), 0))
+const activeProjects = computed(() => projects.value.filter((project) => project.status === 'active').length)
+const backlogProjects = computed(() => projects.value.filter((project) => project.status !== 'active').length)
+
+const openProject = (id) => router.push(/projects/)
 
 const handleCreate = () => {
   projectsStore.createProject({
@@ -113,7 +161,7 @@ const handleJoin = () => {
   try {
     const project = projectsStore.joinByCode(joinCode.value, auth.currentUser)
     successJoin.value = true
-    joinMessage.value = `Joined ${project.name}`
+    joinMessage.value = Joined 
     joinCode.value = ''
   } catch (error) {
     successJoin.value = false

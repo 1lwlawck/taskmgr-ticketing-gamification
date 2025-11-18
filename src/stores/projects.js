@@ -3,6 +3,7 @@ import { loadState, saveState } from '@/utils/storage'
 import { STORAGE_KEYS, TICKET_STATUSES } from '@/utils/constants'
 import { generateId, generateCode, formatDate } from '@/utils/helpers'
 import { useAuditStore } from './audit'
+import { useUsersStore } from './users'
 
 const defaultProjects = [
   {
@@ -42,7 +43,10 @@ export const useProjectsStore = defineStore('projects', {
         name: payload.name,
         description: payload.description,
         status: 'Active',
-        members: payload.members || [],
+        members: (payload.members || []).map((member) => ({
+          ...member,
+          role: member.id === payload.createdBy ? 'admin' : member.role ?? 'member',
+        })),
         invites: [],
         activity: [
           { id: generateId('activity'), text: 'Project created', timestamp: formatDate() },
@@ -52,7 +56,16 @@ export const useProjectsStore = defineStore('projects', {
       this.projects.push(project)
       this.persist()
       useAuditStore().log('project_created', `${payload.name} created`, payload.createdBy)
+      this.promoteCreator(payload.createdBy)
       return project
+    },
+    promoteCreator(userId) {
+      if (!userId) return
+      const usersStore = useUsersStore()
+      const creator = usersStore.users.find((user) => user.id === userId)
+      if (creator && creator.role !== 'admin') {
+        usersStore.updateUserRole(userId, 'admin')
+      }
     },
     addMember(projectId, member) {
       const project = this.getById(projectId)
