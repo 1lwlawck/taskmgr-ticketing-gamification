@@ -51,7 +51,8 @@ export const useUsersStore = defineStore('users', {
     async updateUserProfile(userId: string, payload: Partial<User>) {
       try {
         const { data } = await api.patch('/users/me', payload)
-        const updated = mapUser(data)
+        const body = (data as any).data ?? data
+        const updated = mapUser(body)
         const index = this.users.findIndex((user) => user.id === updated.id)
         if (index >= 0) {
           this.users[index] = updated
@@ -66,7 +67,8 @@ export const useUsersStore = defineStore('users', {
     async updateUserRole(userId: string, role: Role) {
       try {
         const { data } = await api.patch(`/users/${userId}/role`, { role })
-        const updated = mapUser(data)
+        const body = (data as any).data ?? data
+        const updated = mapUser(body)
         const index = this.users.findIndex((user) => user.id === userId)
         if (index >= 0) {
           this.users[index] = updated

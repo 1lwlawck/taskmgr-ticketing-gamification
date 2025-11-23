@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia'
-import { loadState, saveState, clearState } from '@/utils/storage'
+import { loadState, saveState, clearState, clearAuthStorage } from '@/utils/storage'
 import { STORAGE_KEYS } from '@/utils/constants'
-import type { LoginPayload, RegisterPayload, User } from '@/types/models'
+import type { AuthResponse, LoginPayload, RegisterPayload, User } from '@/types/models'
 import { api, handleApiError, setAuthToken } from '@/lib/api'
+import axios from 'axios'
 
 interface AuthState {
   currentUser: User | null
   token: string | null
+  refreshToken: string | null
   loading: boolean
 }
 
@@ -37,22 +39,34 @@ const mapUser = (payload: any): User => ({
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
+    // Restore previous session from localStorage; bootstrap() will verify token/refresh and clear if invalid
     currentUser: loadState<User | null>(STORAGE_KEYS.authUser, null),
     token: loadState<string | null>(STORAGE_KEYS.authToken, null),
+    refreshToken: loadState<string | null>(STORAGE_KEYS.authRefresh, null),
     loading: false,
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.currentUser && state.token),
   },
   actions: {
+    unwrap<T>(data: any, fallback: T): T {
+      return (data as any)?.data ?? data ?? fallback
+    },
     async bootstrap() {
       if (!this.token) return
       setAuthToken(this.token)
       try {
         const { data } = await api.get('/users/me')
-        this.currentUser = mapUser(data)
+        const body = this.unwrap(data, null)
+        if (!body) throw new Error('invalid user payload')
+        this.currentUser = mapUser(body)
         saveState(STORAGE_KEYS.authUser, this.currentUser)
       } catch (error) {
+        // try refresh once
+        if (this.refreshToken) {
+          const refreshed = await this.refresh()
+          if (refreshed) return
+        }
         console.warn('Failed to bootstrap auth session', error)
         this.clearSession()
       }
@@ -60,8 +74,9 @@ export const useAuthStore = defineStore('auth', {
     async login(payload: LoginPayload) {
       this.loading = true
       try {
-        const { data } = await api.post('/auth/login', payload)
-        this.setSession(data.token, data.user)
+        const { data } = await api.post<AuthResponse>('/auth/login', payload)
+        const body = this.unwrap(data, null)
+        this.setSession(body.token, body.refreshToken, body.user)
         return this.currentUser
       } catch (error) {
         throw handleApiError(error)
@@ -72,13 +87,28 @@ export const useAuthStore = defineStore('auth', {
     async register(payload: RegisterPayload) {
       this.loading = true
       try {
-        const { data } = await api.post('/auth/register', payload)
-        this.setSession(data.token, data.user)
+        const { data } = await api.post<AuthResponse>('/auth/register', payload)
+        const body = this.unwrap(data, null)
+        this.setSession(body.token, body.refreshToken, body.user)
         return this.currentUser
       } catch (error) {
         throw handleApiError(error)
       } finally {
         this.loading = false
+      }
+    },
+    async refresh() {
+      if (!this.refreshToken) return false
+      try {
+        const { data } = await api.post('/auth/refresh', { refreshToken: this.refreshToken })
+        const body = this.unwrap(data, null)
+        this.setSession(body.token, body.refreshToken, body.user)
+        return true
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          this.clearSession()
+        }
+        return false
       }
     },
     logout() {
@@ -91,18 +121,23 @@ export const useAuthStore = defineStore('auth', {
         throw handleApiError(error)
       }
     },
-    setSession(token: string, userPayload: any) {
+    setSession(token: string, refreshToken: string, userPayload: any) {
       this.token = token
+      this.refreshToken = refreshToken
       this.currentUser = mapUser(userPayload)
       setAuthToken(token)
       saveState(STORAGE_KEYS.authToken, token)
+      saveState(STORAGE_KEYS.authRefresh, refreshToken)
       saveState(STORAGE_KEYS.authUser, this.currentUser)
     },
     clearSession() {
       this.currentUser = null
       this.token = null
+      this.refreshToken = null
       clearState(STORAGE_KEYS.authUser)
       clearState(STORAGE_KEYS.authToken)
+      clearState(STORAGE_KEYS.authRefresh)
+      clearAuthStorage()
       setAuthToken(null)
     },
   },

@@ -34,7 +34,8 @@ export const useGamificationStore = defineStore('gamification', {
       this.loading = true
       try {
         const { data } = await api.get(`/gamification/stats/${userId}`)
-        this.userStats[userId] = mapStats(data)
+        const body = (data as any).data ?? data
+        this.userStats[userId] = mapStats(body)
         return this.userStats[userId]
       } catch (error) {
         throw handleApiError(error)
@@ -45,7 +46,7 @@ export const useGamificationStore = defineStore('gamification', {
     async fetchEvents(userId?: string) {
       try {
         const { data } = await api.get('/gamification/events', { params: { userId } })
-        this.xpEvents = data?.data ?? []
+        this.xpEvents = (data as any)?.data ?? []
       } catch (error) {
         throw handleApiError(error)
       }
@@ -54,7 +55,7 @@ export const useGamificationStore = defineStore('gamification', {
       this.leaderboardLoading = true
       try {
         const { data } = await api.get('/gamification/leaderboard', { params: { limit } })
-        const rows = Array.isArray(data?.data) ? data.data : data
+        const rows = Array.isArray((data as any)?.data) ? (data as any).data : data
         this.leaderboard = (rows ?? []) as LeaderboardEntry[]
         return this.leaderboard
       } catch (error) {

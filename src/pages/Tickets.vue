@@ -217,16 +217,20 @@
               <option value="chore">Chore</option>
             </select>
           </label>
-          <label class="space-y-1">
-            <span class="text-xs uppercase text-slate-500">Assignee</span>
-            <select v-model="form.assigneeId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-              <option :value="user.id" v-for="user in users" :key="user.id">{{ user.name }}</option>
-            </select>
-          </label>
-          <label class="space-y-1">
-            <span class="text-xs uppercase text-slate-500">Due Date</span>
-            <input type="date" v-model="form.dueDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm" />
-          </label>
+        <label class="space-y-1">
+          <span class="text-xs uppercase text-slate-500">Assignee</span>
+          <select v-model="form.assigneeId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
+            <option :value="user.id" v-for="user in users" :key="user.id">{{ user.name }}</option>
+          </select>
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs uppercase text-slate-500">Start Date</span>
+          <input type="date" v-model="form.startDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm" />
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs uppercase text-slate-500">Due Date</span>
+          <input type="date" v-model="form.dueDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm" />
+        </label>
           <label class="space-y-1">
             <span class="text-xs uppercase text-slate-500">Project</span>
             <select v-model="form.projectId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
@@ -254,8 +258,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, reactive, ref, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import ConfirmModal from '@/components/molecules/ConfirmModal.vue'
 import AppCard from '@/components/molecules/AppCard.vue'
@@ -271,6 +275,7 @@ import type { CreateTicketPayload, Ticket } from '@/types/models'
 import type { TicketPriority, TicketType } from '@/utils/constants'
 
 const router = useRouter()
+const route = useRoute()
 const ticketsStore = useTicketsStore()
 const { tickets } = storeToRefs(ticketsStore)
 const usersStore = useUsersStore()
@@ -284,7 +289,13 @@ const editing = ref(false)
 const editingId = ref(null)
 const confirming = ref(null)
 const toast = reactive({ open: false, variant: 'success', message: '' })
-const query = ref('')
+const query = ref<string>((route.query.q as string) ?? '')
+watch(
+  () => route.query.q,
+  (val) => {
+    query.value = (val as string) ?? ''
+  }
+)
 const statusFilter = ref('all')
 const statusOptions = [
   { label: 'All', value: 'all' },
@@ -301,6 +312,7 @@ type TicketFormState = {
   priority: TicketPriority
   type: TicketType
   assigneeId?: string
+  startDate: string
   dueDate: string
   projectId: string
 }
@@ -311,6 +323,7 @@ const form = reactive<TicketFormState>({
   priority: 'medium',
   type: 'feature',
   assigneeId: users.value[0]?.id,
+  startDate: '',
   dueDate: '',
   projectId: defaultProjectId(),
 })
@@ -430,6 +443,7 @@ const openCreate = () => {
     priority: 'medium' as TicketPriority,
     type: 'feature' as TicketType,
     assigneeId: users.value[0]?.id,
+    startDate: '',
     dueDate: '',
     projectId: defaultProjectId(),
   })
@@ -449,6 +463,7 @@ const editTicket = (ticket: Ticket) => {
     priority: ticket.priority,
     type: ticket.type,
     assigneeId: ticket.assigneeId,
+    startDate: ticket.startDate ? ticket.startDate.slice(0, 10) : '',
     dueDate: ticket.dueDate ? ticket.dueDate.slice(0, 10) : '',
     projectId: ticket.projectId,
   })
@@ -456,19 +471,23 @@ const editTicket = (ticket: Ticket) => {
 }
 
 const handleSubmit = async () => {
+  const startDateIso = form.startDate ? `${form.startDate}T00:00:00Z` : undefined
   const dueDateIso = form.dueDate ? `${form.dueDate}T00:00:00Z` : undefined
 
   try {
     if (editing.value && editingId.value) {
-      const updatePayload: Partial<Ticket> = {
+      const updatePayload: Partial<Ticket> & { clearStartDate?: boolean; clearDueDate?: boolean } = {
         title: form.title,
         description: form.description,
         priority: form.priority,
         type: form.type,
         assigneeId: form.assigneeId,
+        startDate: startDateIso,
         dueDate: dueDateIso,
         projectId: form.projectId,
       }
+      if (!form.startDate) updatePayload.clearStartDate = true
+      if (!form.dueDate) updatePayload.clearDueDate = true
       await ticketsStore.updateTicket(editingId.value, updatePayload)
       showToast('Ticket updated')
     } else {
@@ -479,6 +498,7 @@ const handleSubmit = async () => {
         priority: form.priority,
         type: form.type,
         assigneeId: form.assigneeId,
+        startDate: startDateIso,
         dueDate: dueDateIso,
         createdBy: auth.currentUser?.id ?? '',
       }

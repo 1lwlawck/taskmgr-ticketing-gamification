@@ -81,6 +81,7 @@ export interface Ticket {
   reporterId?: string
   assigneeId?: string
   assigneeName?: string
+  startDate?: string
   dueDate?: string
   createdAt?: string
   updatedAt?: string
@@ -96,6 +97,7 @@ export interface CreateTicketPayload {
   type: TicketType
   assigneeId?: string
   assigneeName?: string
+  startDate?: string
   dueDate?: string
   createdBy: string
 }
@@ -168,4 +170,10 @@ export interface RegisterPayload {
   name: string
   username: string
   password: string
+}
+
+export interface AuthResponse {
+  token: string
+  refreshToken: string
+  user: User
 }

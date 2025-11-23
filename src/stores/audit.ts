@@ -20,7 +20,7 @@ export const useAuditStore = defineStore('audit', {
       this.loading = true
       try {
         const { data } = await api.get('/audit', { params: { limit } })
-        this.entries = (data?.data ?? []).map(mapEntry)
+        this.entries = (data as any)?.data?.map(mapEntry) ?? []
       } catch (error) {
         throw handleApiError(error)
       } finally {

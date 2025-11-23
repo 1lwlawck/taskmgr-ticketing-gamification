@@ -3,7 +3,7 @@
     <div class="flex items-center gap-3">
       <button class="text-slate-500 lg:hidden" @click="toggleSidebar">?</button>
 
-      <div>
+      <form @submit.prevent="handleSearch">
         <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Search</p>
         <div class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-1 text-sm text-slate-600">
           <span>?</span>
@@ -14,7 +14,7 @@
             v-model="search"
           />
         </div>
-      </div>
+      </form>
     </div>
     
     <div class="flex items-center gap-4">
@@ -85,6 +85,11 @@ const avatar = computed(() => currentUser.value?.avatar ?? fallbackAvatar)
 
 const toggleMenu = () => {
   showMenu.value = !showMenu.value
+}
+
+const handleSearch = () => {
+  const q = search.value.trim()
+  router.push({ path: '/tickets', query: q ? { q } : {} })
 }
 
 const handleLogout = () => {

@@ -59,7 +59,8 @@ export const useProjectsStore = defineStore('projects', {
     async fetchProject(projectId: string) {
       try {
         const { data } = await api.get(`/projects/${projectId}`)
-        const normalized = normalizeProject(data)
+        const body = (data as any).data ?? data
+        const normalized = normalizeProject(body)
         this.upsertProject(normalized)
         return normalized
       } catch (error) {
@@ -74,7 +75,8 @@ export const useProjectsStore = defineStore('projects', {
           members: (payload.members ?? []).map((member) => member.id),
         }
         const { data } = await api.post('/projects', body)
-        const project = normalizeProject(data)
+        const bodyResp = (data as any).data ?? data
+        const project = normalizeProject(bodyResp)
         this.projects.push(project)
         return project
       } catch (error) {
@@ -135,14 +137,15 @@ export const useProjectsStore = defineStore('projects', {
         const { data } = await api.post(`/projects/${projectId}/invites`, payload)
         const project = this.getById(projectId)
         if (project) {
+          const inv = (data as any).data ?? data
           project.invites.push({
-            code: data.code,
-            maxUses: data.maxUses,
-            uses: data.uses,
-            expiresAt: data.expiresAt,
+            code: inv.code,
+            maxUses: inv.maxUses,
+            uses: inv.uses,
+            expiresAt: inv.expiresAt,
           })
         }
-        return data as ProjectInvite
+        return ((data as any).data ?? data) as ProjectInvite
       } catch (error) {
         throw handleApiError(error)
       }
@@ -153,7 +156,8 @@ export const useProjectsStore = defineStore('projects', {
       }
       try {
         const { data } = await api.post('/projects/join', { code })
-        const project = normalizeProject(data)
+        const body = (data as any).data ?? data
+        const project = normalizeProject(body)
         this.upsertProject(project)
         return project
       } catch (error) {

@@ -11,10 +11,17 @@ export const TICKET_TYPES = ['bug', 'feature', 'chore'] as const
 
 export const ROLES = ['admin', 'project_manager', 'developer', 'viewer'] as const
 
-export const STORAGE_KEYS = {
+type StorageKeys = {
+  authUser: 'ttm_auth_user'
+  authToken: 'ttm_auth_token'
+  authRefresh: 'ttm_auth_refresh'
+}
+
+export const STORAGE_KEYS: StorageKeys = {
   authUser: 'ttm_auth_user',
   authToken: 'ttm_auth_token',
-} as const
+  authRefresh: 'ttm_auth_refresh',
+}
 
 export type TicketPriority = keyof typeof PRIORITY_XP_MAP
 export type TicketStatus = (typeof TICKET_STATUSES)[number]
