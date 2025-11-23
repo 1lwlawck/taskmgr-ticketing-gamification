@@ -186,6 +186,72 @@
         </div>
       </AppCard>
     </div>
+
+    <AppCard title="My ticket queue" description="Tickets assigned to you only">
+      <template #action>
+        <RouterLink to="/tickets">
+          <Button variant="ghost" size="sm">Go to tickets</Button>
+        </RouterLink>
+      </template>
+      <div class="-mx-2 overflow-x-auto sm:mx-0">
+        <table class="min-w-full divide-y divide-slate-100 text-sm">
+          <thead class="text-left text-xs uppercase tracking-[0.3em] text-muted-foreground">
+            <tr>
+              <th class="px-2 py-3 font-medium">Ticket</th>
+              <th class="px-2 py-3 font-medium">Priority</th>
+              <th class="px-2 py-3 font-medium">Due</th>
+              <th class="px-2 py-3 font-medium">Status</th>
+              <th class="px-2 py-3 text-right font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="!myTicketRows.length">
+              <td colspan="5" class="px-2 py-6 text-center text-sm text-muted-foreground">
+                Belum ada tiket yang ditugaskan ke kamu.
+              </td>
+            </tr>
+            <template v-else>
+              <tr
+                v-for="ticket in myTicketRows"
+                :key="ticket.id"
+                class="border-b border-slate-100 last:border-none"
+              >
+                <td class="px-2 py-3">
+                  <p class="font-medium text-foreground">{{ ticket.title }}</p>
+                  <p class="text-xs text-muted-foreground">{{ ticket.projectId }}</p>
+                </td>
+                <td class="px-2 py-3">
+                  <span
+                    :class="[
+                      'rounded-full border px-3 py-0.5 text-xs font-medium capitalize',
+                      priorityBadgeClass(ticket.priority),
+                    ]"
+                  >
+                    {{ ticket.priority }}
+                  </span>
+                </td>
+                <td class="px-2 py-3 text-sm text-foreground">
+                  {{ ticket.dueDate ? formatDate(ticket.dueDate) : 'No due date' }}
+                </td>
+                <td class="px-2 py-3">
+                  <span
+                    :class="[
+                      'rounded-full border px-3 py-0.5 text-xs font-semibold uppercase tracking-[0.2em]',
+                      statusBadgeClass(ticket.status),
+                    ]"
+                  >
+                    {{ ticket.status }}
+                  </span>
+                </td>
+                <td class="px-2 py-3 text-right">
+                  <Button size="sm" variant="outline" class="text-xs" @click="openTicket(ticket.id)">Detail</Button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </AppCard>
   </section>
 </template>
 
@@ -199,12 +265,13 @@ import TicketCard from '@/components/molecules/TicketCard.vue'
 import AppCard from '@/components/molecules/AppCard.vue'
 import { Button } from '@/components/atoms/ui/button'
 import { ChartCrosshair, ChartLegend, defaultColors } from '@/components/atoms/ui/chart'
-import { VisXYContainer, VisStackedBar, VisAxis } from '@unovis/vue'
+import { VisXYContainer, VisStackedBar, VisAxis, VisLine } from '@unovis/vue'
 import type { BulletLegendItemInterface } from '@unovis/ts'
 import { useAuthStore } from '@/stores/auth'
 import { useGamificationStore } from '@/stores/gamification'
 import { useTicketsStore } from '@/stores/tickets'
 import { formatDate } from '@/utils/helpers'
+import type { Ticket } from '@/types/models'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -274,6 +341,18 @@ const focusTickets = computed(() => {
     .slice(0, 3)
 })
 
+const myTicketRows = computed(() => {
+  const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 }
+  return [...assignedTickets.value].sort((a, b) => {
+    const dueA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity
+    const dueB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity
+    if (dueA !== dueB) return dueA - dueB
+    const priorityDiff = (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4)
+    if (priorityDiff !== 0) return priorityDiff
+    return a.title.localeCompare(b.title)
+  })
+})
+
 const nextDueTicket = computed(() => {
   const sorted = assignedTickets.value
     .filter((ticket) => ticket.dueDate && ticket.status !== 'done')
@@ -294,23 +373,64 @@ const priorityBadgeClass = (priority?: string) => {
   return palette[priority ?? ''] ?? 'border-slate-200 bg-slate-50 text-slate-600'
 }
 
-const productivityData = ref([
-  { day: 'Mon', value: 3 },
-  { day: 'Tue', value: 4 },
-  { day: 'Wed', value: 2 },
-  { day: 'Thu', value: 6 },
-  { day: 'Fri', value: 5 },
-  { day: 'Sat', value: 4 },
-  { day: 'Sun', value: 3 },
-])
+const statusBadgeClass = (status?: string) => {
+  const palette: Record<string, string> = {
+    todo: 'border-slate-200 bg-slate-50 text-slate-600',
+    in_progress: 'border-sky-300 bg-sky-50 text-sky-700',
+    review: 'border-violet-300 bg-violet-50 text-violet-700',
+    done: 'border-emerald-300 bg-emerald-50 text-emerald-700',
+  }
+  return palette[status ?? ''] ?? 'border-slate-200 bg-slate-50 text-slate-600'
+}
+
+const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+const latestDoneDate = (ticket: Ticket) => {
+  const doneHistory = ticket.history?.find((h) => h.text?.toLowerCase().includes('status changed to done'))
+  if (doneHistory?.timestamp) return new Date(doneHistory.timestamp)
+  if (ticket.status === 'done' && ticket.updatedAt) return new Date(ticket.updatedAt)
+  return undefined
+}
+
+const last7Days = computed(() => {
+  const now = new Date()
+  return Array.from({ length: 7 })
+    .map((_, i) => {
+      const d = new Date(now)
+      d.setDate(now.getDate() - (6 - i))
+      return d
+    })
+    .map((date) => ({
+      key: date.toISOString().slice(0, 10),
+      day: dayLabels[date.getDay()],
+      date,
+    }))
+})
+
+const productivityBuckets = computed(() => {
+  const buckets = new Map<string, number>()
+  last7Days.value.forEach((d) => buckets.set(d.key, 0))
+  ticketsStore.tickets.forEach((ticket) => {
+    const doneAt = latestDoneDate(ticket)
+    if (!doneAt) return
+    const key = doneAt.toISOString().slice(0, 10)
+    if (buckets.has(key)) {
+      buckets.set(key, (buckets.get(key) ?? 0) + 1)
+    }
+  })
+  return last7Days.value.map((d) => ({
+    day: d.day,
+    value: buckets.get(d.key) ?? 0,
+  }))
+})
 
 const chartPoints = computed(() =>
-  productivityData.value.map((entry, index) => ({ ...entry, position: index }))
+  productivityBuckets.value.map((entry, index) => ({ ...entry, position: index }))
 )
 
 // goalPoints provides a constant goal line (e.g. goal 5 tickets/day) aligned with chartPoints
 const goalPoints = computed(() =>
-  productivityData.value.map((entry, index) => ({ ...entry, position: index, value: 5 }))
+  productivityBuckets.value.map((entry, index) => ({ ...entry, position: index, value: 5 }))
 )
 const goalAccessor = (d) => d.value
 
@@ -321,7 +441,7 @@ const chartLegendItems = computed<BulletLegendItemInterface[]>(() => [
 const xAccessor = (d) => d.position
 const yAccessor = (d) => d.value
 const chartIndex = 'day'
-const formatXAxis = (tick: number) => productivityData.value[tick]?.day ?? ''
+const formatXAxis = (tick: number) => productivityBuckets.value[tick]?.day ?? ''
 
 const levelBadge = computed(() => {
   const level = stats.value?.level ?? 1
@@ -343,3 +463,4 @@ const badges = computed(() => [
 
 const openTicket = (ticketId) => router.push(`/tickets/${ticketId}`)
 </script>
+

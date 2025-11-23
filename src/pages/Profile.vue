@@ -1,4 +1,4 @@
-<template>
+ï»¿<template>
   <section v-if="currentUser" class="space-y-8">
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-20 top-10 h-56 w-56 rounded-full bg-white/15 blur-3xl"></div>
@@ -103,6 +103,33 @@
           </label>
           <Button type="submit" class="w-full bg-slate-900 text-white">Save changes</Button>
         </form>
+        <div class="mt-8 space-y-3 border-t border-border pt-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Security</p>
+              <h3 class="text-lg font-semibold text-foreground">Change password</h3>
+            </div>
+            <span v-if="passwordSaved" class="text-xs text-emerald-600">Updated</span>
+          </div>
+          <form class="space-y-3 text-sm" @submit.prevent="submitPassword">
+            <label class="block space-y-1">
+              <span class="text-xs uppercase text-muted-foreground">Current password</span>
+              <input v-model="pwd.old" type="password" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" required />
+            </label>
+            <label class="block space-y-1">
+              <span class="text-xs uppercase text-muted-foreground">New password</span>
+              <input v-model="pwd.new1" type="password" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" required />
+            </label>
+            <label class="block space-y-1">
+              <span class="text-xs uppercase text-muted-foreground">Confirm new password</span>
+              <input v-model="pwd.new2" type="password" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" required />
+            </label>
+            <p v-if="pwdError" class="text-xs text-rose-600">{{ pwdError }}</p>
+            <Button type="submit" class="w-full bg-slate-900 text-white" :disabled="pwdSubmitting">
+              {{ pwdSubmitting ? 'Updating...' : 'Update password' }}
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   </section>
@@ -122,6 +149,10 @@ const { currentUser } = storeToRefs(auth)
 const usersStore = useUsersStore()
 const gamification = useGamificationStore()
 const saved = ref(false)
+const passwordSaved = ref(false)
+const pwdSubmitting = ref(false)
+const pwdError = ref('')
+const pwd = reactive({ old: '', new1: '', new2: '' })
 
 const form = reactive({
   name: '',
@@ -152,13 +183,50 @@ const nextBadge = computed(() => (badgeList.value[0] ? badgeList.value[0] : 'No 
 
 const numberFormatter = new Intl.NumberFormat('en-US')
 const formatNumber = (value = 0) => numberFormatter.format(value ?? 0)
-const formatRole = (role) => (role ? role.replace(/_/g, ' ') : '—')
+const formatRole = (role) => (role ? role.replace(/_/g, ' ') : '-')
 
-const save = () => {
+const save = async () => {
   if (!currentUser.value) return
-  usersStore.updateUserProfile(currentUser.value.id, { name: form.name, bio: form.bio })
-  auth.hydrateFromUsers(currentUser.value.id)
-  saved.value = true
-  setTimeout(() => (saved.value = false), 2000)
+  try {
+    const updated = await usersStore.updateUserProfile(currentUser.value.id, {
+      name: form.name,
+      bio: form.bio,
+    })
+    auth.currentUser = updated
+    saved.value = true
+    setTimeout(() => (saved.value = false), 2000)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const submitPassword = async () => {
+  if (!currentUser.value) return
+  pwdError.value = ''
+  if (!pwd.old || !pwd.new1 || !pwd.new2) {
+    pwdError.value = 'Please fill all fields'
+    return
+  }
+  if (pwd.new1 !== pwd.new2) {
+    pwdError.value = 'New password and confirmation must match'
+    return
+  }
+  if (pwd.new1.length < 6) {
+    pwdError.value = 'Use at least 6 characters'
+    return
+  }
+  pwdSubmitting.value = true
+  try {
+    await auth.changePassword(pwd.old, pwd.new1)
+    passwordSaved.value = true
+    pwd.old = ''
+    pwd.new1 = ''
+    pwd.new2 = ''
+    setTimeout(() => (passwordSaved.value = false), 2000)
+  } catch (error) {
+    pwdError.value = error instanceof Error ? error.message : 'Failed to update password'
+  } finally {
+    pwdSubmitting.value = false
+  }
 }
 </script>

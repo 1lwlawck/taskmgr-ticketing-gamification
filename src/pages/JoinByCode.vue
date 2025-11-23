@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section class="mx-auto max-w-xl space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
     <h1 class="text-2xl font-semibold text-slate-900">Join a project</h1>
     <p class="text-sm text-slate-500">Enter an invite code provided by a project lead.</p>
@@ -40,3 +40,5 @@ const join = () => {
   }
 }
 </script>
+
+

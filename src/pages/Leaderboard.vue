@@ -142,33 +142,50 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import AppCard from '@/components/molecules/AppCard.vue'
 import { Button } from '@/components/atoms/ui/button'
-import { useUsersStore } from '@/stores/users'
 import { useGamificationStore } from '@/stores/gamification'
 
-const usersStore = useUsersStore()
 const gamificationStore = useGamificationStore()
-const { users } = storeToRefs(usersStore)
-const { userStats } = storeToRefs(gamificationStore)
+const { leaderboard } = storeToRefs(gamificationStore)
+
+const loadLeaderboard = async () => {
+  try {
+    await gamificationStore.fetchLeaderboard()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to load leaderboard'
+    gamificationStore.pushToast({
+      title: 'Leaderboard error',
+      message,
+    })
+  }
+}
+
+onMounted(() => {
+  if (!leaderboard.value.length) {
+    loadLeaderboard()
+  }
+})
 
 const ranking = computed(() =>
-  users.value
-    .map((user) => ({
-      ...user,
-      ...(userStats.value[user.id] ?? { xp: 0, level: 1, tickets_closed_count: 0 }),
-    }))
-    .sort((a, b) => b.xp - a.xp)
-    .map((entry, index) => ({ ...entry, rank: index + 1 }))
+  [...leaderboard.value].sort((a, b) => {
+    if (a.rank && b.rank) return a.rank - b.rank
+    return (b.xp ?? 0) - (a.xp ?? 0)
+  })
 )
 
 const rankingWithGap = computed(() => {
+  if (!ranking.value.length) return []
   const leaderXp = ranking.value[0]?.xp ?? 0
-  return ranking.value.map((entry) => ({
+  return ranking.value.map((entry, index) => ({
     ...entry,
-    xpGap: Math.max(0, leaderXp - (entry.xp ?? 0)),
+    rank: entry.rank || index + 1,
+    xpGap:
+      typeof entry.xpGap === 'number' && !Number.isNaN(entry.xpGap)
+        ? entry.xpGap
+        : Math.max(0, leaderXp - (entry.xp ?? 0)),
   }))
 })
 
@@ -200,7 +217,7 @@ const xpGapToSquad = computed(() => {
 const numberFormatter = new Intl.NumberFormat('en-US')
 const formatNumber = (value = 0) => numberFormatter.format(value ?? 0)
 const formatRole = (role) => {
-  if (!role) return '—'
+  if (!role) return '-'
   return role.replace(/_/g, ' ')
 }
 const podiumAccent = (index) => {
@@ -213,3 +230,4 @@ const podiumAccent = (index) => {
 }
 const podiumTitle = (index) => ['Champion', 'Runner up', 'Challenger'][index] ?? 'Contender'
 </script>
+

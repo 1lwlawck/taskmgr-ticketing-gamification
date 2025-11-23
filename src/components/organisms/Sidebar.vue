@@ -164,7 +164,7 @@
   </SidebarRoot>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
@@ -187,6 +187,8 @@ import {
   SidebarSeparator,
   useSidebar,
 } from '@/components/atoms/ui/sidebar'
+import type { GamificationStats } from '@/types/models'
+import type { Role } from '@/utils/constants'
 
 const router = useRouter()
 const route = useRoute()
@@ -201,9 +203,9 @@ const { projects } = storeToRefs(projectsStore)
 
 const { isMobile, setOpenMobile } = useSidebar()
 
-const stats = computed(() => {
+const stats = computed<GamificationStats | null>(() => {
   if (!currentUser.value) return null
-  return userStats.value[currentUser.value.id]
+  return userStats.value[currentUser.value.id] ?? null
 })
 
 const ICONS = {
@@ -219,9 +221,18 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M5 21v-2a7 7 0 1 1 14 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   shield:
     '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 6v6c0 5 3.5 9 8 9s8-4 8-9V6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 13h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+} as const
+
+type IconKey = keyof typeof ICONS
+
+interface NavItem {
+  label: string
+  to: string
+  icon: IconKey
+  role?: Role
 }
 
-const nav = [
+const nav: NavItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: 'dashboard' },
   { label: 'Tickets', to: '/tickets', icon: 'tickets' },
   { label: 'Leaderboard', to: '/leaderboard', icon: 'leaderboard' },
@@ -230,9 +241,7 @@ const nav = [
 ]
 
 const mainNav = computed(() =>
-  nav.filter(
-    (item) => !item.role || currentUser.value?.role === item.role
-  )
+  nav.filter((item) => !item.role || currentUser.value?.role === item.role)
 )
 
 // Dashboard saja
@@ -272,7 +281,7 @@ const initials = computed(() => {
     .toUpperCase()
 })
 
-const isActive = (path) => route.path === path
+const isActive = (path: string) => route.path === path
 
 const closeOnMobile = () => {
   if (isMobile.value) {
@@ -280,7 +289,7 @@ const closeOnMobile = () => {
   }
 }
 
-const navigateTo = (path) => {
+const navigateTo = (path: string) => {
   if (route.path === path) {
     // sudah di route ini, cukup tutup sidebar mobile
     closeOnMobile()

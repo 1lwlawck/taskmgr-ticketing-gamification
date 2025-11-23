@@ -15,7 +15,9 @@
           <Button variant="secondary" class="border border-white/30 bg-white/15 text-white hover:bg-white/25" @click="showJoin = true">
             Join project
           </Button>
-          <Button class="bg-white text-slate-900" @click="showModal = true">Create project</Button>
+          <Button class="bg-white text-slate-900 disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canCreateProject" @click="showModal = true">
+            Create project
+          </Button>
         </div>
       </div>
     </div>
@@ -105,10 +107,11 @@
         </form>
       </div>
     </div>
+
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import AppCard from '@/components/molecules/AppCard.vue'
@@ -117,9 +120,12 @@ import { useProjectsStore } from '@/stores/projects'
 import { useAuthStore } from '@/stores/auth'
 import { Input } from '@/components/atoms/ui/input'
 import { Button } from '@/components/atoms/ui/button'
+import { useGamificationStore } from '@/stores/gamification'
+import type { Project } from '@/types/models'
 
 const projectsStore = useProjectsStore()
 const auth = useAuthStore()
+const gamification = useGamificationStore()
 const { projects } = storeToRefs(projectsStore)
 const showModal = ref(false)
 const showJoin = ref(false)
@@ -127,21 +133,40 @@ const joinCode = ref('')
 const joinMessage = ref('')
 const successJoin = ref(false)
 const form = reactive({ name: '', description: '' })
+const canCreateProject = computed(() =>
+  ['admin', 'project_manager'].includes(auth.currentUser?.role ?? '')
+)
 
-const totalTickets = computed(() => projects.value.reduce((sum, project) => sum + (project.tickets?.length ?? 0), 0))
-const activeProjects = computed(() => projects.value.filter((project) => project.status === 'active').length)
-const backlogProjects = computed(() => projects.value.filter((project) => project.status !== 'active').length)
+const projectTicketCount = (project: Project) => {
+  if (typeof project.ticketsCount === 'number') return project.ticketsCount
+  const board: Record<string, string[]> = project.board ?? ({} as Record<string, string[]>)
+  return Object.values(board).reduce((count, ids) => count + ids.length, 0)
+}
 
-const openProject = (id) => router.push(/projects/)
+const totalTickets = computed(() => projects.value.reduce((sum, project) => sum + projectTicketCount(project), 0))
+const isActiveStatus = (status?: string) => (status ?? '').toLowerCase() === 'active'
+const activeProjects = computed(() => projects.value.filter((project) => isActiveStatus(project.status)).length)
+const backlogProjects = computed(() => projects.value.filter((project) => !isActiveStatus(project.status)).length)
 
-const handleCreate = () => {
-  projectsStore.createProject({
-    name: form.name,
-    description: form.description,
-    members: auth.currentUser ? [{ id: auth.currentUser.id, name: auth.currentUser.name, role: auth.currentUser.role }] : [],
-    createdBy: auth.currentUser?.id,
-  })
-  resetModal()
+const handleCreate = async () => {
+  if (!canCreateProject.value) {
+    joinMessage.value = 'Only admins or project managers can create projects'
+    successJoin.value = false
+    return
+  }
+  try {
+    await projectsStore.createProject({
+      name: form.name,
+      description: form.description,
+      members: auth.currentUser
+        ? [{ id: auth.currentUser.id, name: auth.currentUser.name, role: auth.currentUser.role }]
+        : [],
+      createdBy: auth.currentUser?.id,
+    })
+    resetModal()
+  } catch (error) {
+    console.error(error)
+  }
 }
 
 const resetModal = () => {
@@ -150,20 +175,25 @@ const resetModal = () => {
   showModal.value = false
 }
 
-const handleJoin = () => {
+const handleJoin = async () => {
   if (!joinCode.value) {
     successJoin.value = false
     joinMessage.value = 'Enter a code first'
     return
   }
   try {
-    const project = projectsStore.joinByCode(joinCode.value, auth.currentUser)
+    const project = await projectsStore.joinByCode(joinCode.value, auth.currentUser)
     successJoin.value = true
-    joinMessage.value = Joined 
+    joinMessage.value = ''
     joinCode.value = ''
+    closeJoin()
+    gamification.pushToast({
+      title: 'Joined project',
+      message: `You are now part of ${project.name}`,
+    })
   } catch (error) {
     successJoin.value = false
-    joinMessage.value = error.message
+    joinMessage.value = error instanceof Error ? error.message : 'Failed to join project'
   }
 }
 
@@ -173,3 +203,5 @@ const closeJoin = () => {
   joinCode.value = ''
 }
 </script>
+
+

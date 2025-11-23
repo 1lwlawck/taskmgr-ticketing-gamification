@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section class="space-y-8">
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-16 -top-10 h-40 w-40 rounded-full bg-white/15 blur-3xl"></div>
@@ -119,14 +119,29 @@
                 </span>
               </td>
               <td class="px-4 py-3 capitalize text-foreground">{{ formatStatus(ticket.status) }}</td>
-              <td class="px-4 py-3 text-foreground">{{ ticket.assigneeName }}</td>
-              <td class="px-4 py-3">
-                <div class="flex justify-end gap-2">
-                  <Button size="xs" variant="ghost" class="text-slate-600" @click="openDetail(ticket.id)">View</Button>
-                  <Button size="xs" variant="outline" class="text-slate-700" @click="editTicket(ticket)">Edit</Button>
-                  <Button size="xs" variant="destructive" @click="promptDelete(ticket)">Delete</Button>
-                </div>
-              </td>
+              <td class="px-4 py-3 text-foreground">{{ assigneeLabel(ticket) }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex justify-end gap-2">
+                    <Button size="xs" variant="ghost" class="text-slate-600" @click="openDetail(ticket.id)">View</Button>
+                    <Button
+                      v-if="canManageTicket(ticket)"
+                      size="xs"
+                      variant="outline"
+                      class="text-slate-700"
+                      @click="editTicket(ticket)"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      v-if="canManageTicket(ticket)"
+                      size="xs"
+                      variant="destructive"
+                      @click="promptDelete(ticket)"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </td>
             </tr>
           </tbody>
         </table>
@@ -142,7 +157,7 @@
           <li v-for="ticket in upcomingTickets" :key="ticket.id" class="flex items-start justify-between rounded-2xl border border-border bg-muted/40 px-4 py-3">
             <div class="space-y-1">
               <p class="text-sm font-semibold text-foreground">{{ ticket.title }}</p>
-              <p class="text-xs text-muted-foreground">{{ ticket.projectId }} / {{ ticket.assigneeName ?? 'Unassigned' }}</p>
+              <p class="text-xs text-muted-foreground">{{ ticket.projectId }} / {{ assigneeLabel(ticket) }}</p>
             </div>
             <div class="text-right">
               <p class="text-sm font-semibold text-foreground">{{ dueLabel(ticket) }}</p>
@@ -227,10 +242,18 @@
     </div>
 
     <ConfirmModal :open="Boolean(confirming)" title="Delete ticket" message="This action cannot be undone." @cancel="confirming = null" @confirm="deleteTicket" />
+    <div v-if="toast.open" class="fixed bottom-6 right-6 z-50">
+      <div
+        class="rounded-2xl px-4 py-3 text-sm shadow-lg transition"
+        :class="toast.variant === 'error' ? 'border border-red-200 bg-red-50 text-red-700' : 'border border-emerald-200 bg-emerald-50 text-emerald-800'"
+      >
+        {{ toast.message }}
+      </div>
+    </div>
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
@@ -242,7 +265,10 @@ import { Search } from 'lucide-vue-next'
 import { useTicketsStore } from '@/stores/tickets'
 import { useUsersStore } from '@/stores/users'
 import { useProjectsStore } from '@/stores/projects'
+import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/utils/helpers'
+import type { CreateTicketPayload, Ticket } from '@/types/models'
+import type { TicketPriority, TicketType } from '@/utils/constants'
 
 const router = useRouter()
 const ticketsStore = useTicketsStore()
@@ -251,11 +277,13 @@ const usersStore = useUsersStore()
 const { users } = storeToRefs(usersStore)
 const projectsStore = useProjectsStore()
 const { projects } = storeToRefs(projectsStore)
+const auth = useAuthStore()
 
 const showModal = ref(false)
 const editing = ref(false)
 const editingId = ref(null)
 const confirming = ref(null)
+const toast = reactive({ open: false, variant: 'success', message: '' })
 const query = ref('')
 const statusFilter = ref('all')
 const statusOptions = [
@@ -267,12 +295,22 @@ const statusOptions = [
 ]
 const statusBreakdownOptions = statusOptions.filter((option) => option.value !== 'all')
 const defaultProjectId = () => projects.value[0]?.id ?? 'project-core'
-const form = reactive({
+type TicketFormState = {
+  title: string
+  description: string
+  priority: TicketPriority
+  type: TicketType
+  assigneeId?: string
+  dueDate: string
+  projectId: string
+}
+
+const form = reactive<TicketFormState>({
   title: '',
   description: '',
   priority: 'medium',
   type: 'feature',
-  assigneeId: users.value[0]?.id ?? '',
+  assigneeId: users.value[0]?.id,
   dueDate: '',
   projectId: defaultProjectId(),
 })
@@ -316,6 +354,13 @@ const percentOfTotal = (value) => {
   return Math.round((value / totalTickets.value) * 100)
 }
 
+const assigneeLabel = (ticket) => {
+  if (ticket.assigneeName) return ticket.assigneeName
+  if (!ticket.assigneeId) return 'Unassigned'
+  const assignee = users.value.find((user) => user.id === ticket.assigneeId)
+  return assignee?.name ?? 'Unassigned'
+}
+
 const filteredTickets = computed(() => {
   const queryValue = query.value.trim().toLowerCase()
   return tickets.value
@@ -328,7 +373,7 @@ const filteredTickets = computed(() => {
       const projectName = (projectNameById.value[ticket.projectId] ?? '').toLowerCase()
       return (
         ticket.title.toLowerCase().includes(queryValue) ||
-        (ticket.assigneeName ?? '').toLowerCase().includes(queryValue) ||
+        assigneeLabel(ticket).toLowerCase().includes(queryValue) ||
         (ticket.projectId ?? '').toLowerCase().includes(queryValue) ||
         projectName.includes(queryValue)
       )
@@ -358,6 +403,22 @@ const priorityPillClass = (priority = 'medium') => {
 }
 const dueLabel = (ticket) => (ticket.dueDate ? formatDate(ticket.dueDate) : 'Unscheduled')
 
+const canManageTicket = (ticket: Ticket) => {
+  const user = auth.currentUser
+  if (!user) return false
+  const elevatedRoles = ['admin', 'project_manager']
+  if (elevatedRoles.includes(user.role as string)) {
+    return true
+  }
+  if (ticket.assigneeId && ticket.assigneeId === user.id) {
+    return true
+  }
+  if (ticket.reporterId && ticket.reporterId === user.id) {
+    return true
+  }
+  return false
+}
+
 const openDetail = (id) => router.push(`/tickets/${id}`)
 
 const openCreate = () => {
@@ -366,16 +427,20 @@ const openCreate = () => {
   Object.assign(form, {
     title: '',
     description: '',
-    priority: 'medium',
-    type: 'feature',
-    assigneeId: users.value[0]?.id ?? '',
+    priority: 'medium' as TicketPriority,
+    type: 'feature' as TicketType,
+    assigneeId: users.value[0]?.id,
     dueDate: '',
     projectId: defaultProjectId(),
   })
   showModal.value = true
 }
 
-const editTicket = (ticket) => {
+const editTicket = (ticket: Ticket) => {
+  if (!canManageTicket(ticket)) {
+    showToast('Kamu tidak bisa mengedit tiket ini', 'error')
+    return
+  }
   editing.value = true
   editingId.value = ticket.id
   Object.assign(form, {
@@ -384,41 +449,83 @@ const editTicket = (ticket) => {
     priority: ticket.priority,
     type: ticket.type,
     assigneeId: ticket.assigneeId,
-    dueDate: ticket.dueDate,
+    dueDate: ticket.dueDate ? ticket.dueDate.slice(0, 10) : '',
     projectId: ticket.projectId,
   })
   showModal.value = true
 }
 
-const handleSubmit = () => {
-  const assignee = users.value.find((user) => user.id === form.assigneeId)
-  if (editing.value) {
-    ticketsStore.updateTicket(editingId.value, {
-      ...form,
-      assigneeName: assignee?.name,
-    })
-  } else {
-    ticketsStore.createTicket({
-      ...form,
-      assigneeName: assignee?.name,
-      createdBy: assignee?.id,
-    })
+const handleSubmit = async () => {
+  const dueDateIso = form.dueDate ? `${form.dueDate}T00:00:00Z` : undefined
+
+  try {
+    if (editing.value && editingId.value) {
+      const updatePayload: Partial<Ticket> = {
+        title: form.title,
+        description: form.description,
+        priority: form.priority,
+        type: form.type,
+        assigneeId: form.assigneeId,
+        dueDate: dueDateIso,
+        projectId: form.projectId,
+      }
+      await ticketsStore.updateTicket(editingId.value, updatePayload)
+      showToast('Ticket updated')
+    } else {
+      const payload: CreateTicketPayload = {
+        projectId: form.projectId,
+        title: form.title,
+        description: form.description,
+        priority: form.priority,
+        type: form.type,
+        assigneeId: form.assigneeId,
+        dueDate: dueDateIso,
+        createdBy: auth.currentUser?.id ?? '',
+      }
+      if (!payload.createdBy) {
+        showToast('Please login to create tickets', 'error')
+        return
+      }
+      await ticketsStore.createTicket(payload)
+      showToast('Ticket created')
+    }
+    closeModal()
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Failed to save ticket', 'error')
   }
-  closeModal()
 }
 
 const closeModal = () => {
   showModal.value = false
 }
 
-const promptDelete = (ticket) => {
+const promptDelete = (ticket: Ticket) => {
+  if (!canManageTicket(ticket)) {
+    showToast('Kamu tidak bisa menghapus tiket ini', 'error')
+    return
+  }
   confirming.value = ticket
 }
 
-const deleteTicket = () => {
+const deleteTicket = async () => {
   if (!confirming.value) return
-  ticketsStore.deleteTicket(confirming.value.id)
-  confirming.value = null
+  try {
+    await ticketsStore.deleteTicket(confirming.value.id)
+    showToast('Ticket deleted')
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Failed to delete ticket', 'error')
+  } finally {
+    confirming.value = null
+  }
+}
+
+const showToast = (message: string, variant = 'success') => {
+  toast.message = message
+  toast.variant = variant
+  toast.open = true
+  setTimeout(() => (toast.open = false), 2500)
 }
 </script>
+
+
 

@@ -1,17 +1,17 @@
-﻿const isBrowser = typeof window !== 'undefined'
+const isBrowser = typeof window !== 'undefined'
 
-export const loadState = (key, fallback = null) => {
+export const loadState = <T>(key: string, fallback: T): T => {
   if (!isBrowser) return fallback
   try {
     const raw = window.localStorage.getItem(key)
-    return raw ? JSON.parse(raw) : fallback
+    return raw ? (JSON.parse(raw) as T) : fallback
   } catch (error) {
     console.warn(`Failed to parse localStorage key ${key}`, error)
     return fallback
   }
 }
 
-export const saveState = (key, value) => {
+export const saveState = <T>(key: string, value: T): void => {
   if (!isBrowser) return
   try {
     window.localStorage.setItem(key, JSON.stringify(value))
@@ -20,7 +20,7 @@ export const saveState = (key, value) => {
   }
 }
 
-export const clearState = (key) => {
+export const clearState = (key: string): void => {
   if (!isBrowser) return
   try {
     window.localStorage.removeItem(key)

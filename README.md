@@ -1,55 +1,117 @@
-﻿# Ticketing + Gamification Frontend
+﻿# backend-go-ticketing-gamify
 
-This is a Vite + Vue 3 (Composition API) frontend scaffold for a ticketing platform that layers in gamification mechanics. It ships with Pinia stores, Vue Router routes, TailwindCSS for the monochrome UI, mocked data persisted to `localStorage`, and Vitest-based unit tests.
+Backend API for the Vue ticketing + gamification app. Built with Go + Gin, pgx, and Supabase Postgres. All business endpoints are versioned under `/api/v1`.
 
 ## Requirements
 
-- Node.js 18+
-- npm 9+
+- Go 1.23+
+- Supabase (or Postgres) connection string
 
-## Getting started
+## Setup
+
+1. Copy the environment template and edit credentials:
+   ```bash
+   cp .env.example .env
+   # update DATABASE_URL, JWT_SECRET, PORT, etc.
+   ```
+2. Install dependencies:
+   ```bash
+   go mod tidy
+   ```
+3. Run the server:
+   ```bash
+   go run ./cmd/server
+   ```
+   The API listens on `http://localhost:8080` (or the `PORT` you configure).
+
+### DB connectivity helper
 
 ```bash
-npm install
-npm run dev
+go run ./cmd/dbcheck
 ```
 
-Then open http://localhost:5173. Demo credentials are documented in `src/stores/users.js` (`avery`, `devon`, `parker`, all with password `password`). Feel free to register a new user—the first registration becomes an admin when the demo storage is empty.
+The command reads `DATABASE_URL`, opens a pgx connection, and prints `SELECT version()` so you can confirm Supabase connectivity quickly.
 
-### Available scripts
+## API Overview
 
-| Script        | Description                                  |
-| ------------- | -------------------------------------------- |
-| `npm run dev` | Start Vite dev server with hot reload.       |
-| `npm run build` | Production bundle generation.             |
-| `npm run preview` | Preview the production build locally.   |
-| `npm run test` | Run Vitest unit tests once.                |
-| `npm run test:watch` | Run Vitest in watch mode.            |
+Authentication uses JWT (24h expiry). Send `Authorization: Bearer <token>` for every `/api/v1/*` request except `/api/v1/auth/*`.
 
-### Reset demo data
+### Auth
 
-All state is persisted in `localStorage` under keys prefixed with `ttm_*`. To reset the workspace back to seed data:
+| Method | Route | Description |
+| ------ | ----- | ----------- |
+| POST | `/api/v1/auth/login` | Body `{ "username": "...", "password": "..." }` → `{ token, user }` |
+| POST | `/api/v1/auth/register` | Body `{ "name","username","password","avatarUrl?" }` registers a user and returns `{ token, user }`. |
 
-1. Open your browser devtools.
-2. Go to the **Application / Storage** tab.
-3. Delete the keys `ttm_auth`, `ttm_users`, `ttm_projects`, `ttm_tickets`, `ttm_gamification`, and `ttm_audit`.
-4. Refresh the page.
+### Users
 
-## Architecture overview
+| Method | Route | Description |
+| ------ | ----- | ----------- |
+| GET | `/api/v1/users` | Admin / project_manager only. List all users. |
+| GET | `/api/v1/users/me` | Return the authenticated user profile. |
+| PATCH | `/api/v1/users/me` | Update own profile `{ name, bio, avatarUrl }`. |
+| GET | `/api/v1/users/:id` | Admin / project_manager: fetch another user profile. |
+| PATCH | `/api/v1/users/:id/role` | Admin only: update a member’s role. |
 
-- **Vue 3 + Vite** for SPA scaffolding.
-- **Pinia stores** for `auth`, `users`, `projects`, `tickets`, `gamification`, and `audit` state. Each store loads from/persists to `localStorage`. TODO markers highlight where API calls should replace mocks later.
-- **Vue Router** protects routes client-side and switches between auth and main layouts.
-- **TailwindCSS** enforces the black/gray/white palette with responsive layouts.
-- **Components** for layout (sidebar, topbar), reusable cards, modals, a toast system, and XP/badge widgets.
-- **Pages** cover login/register, dashboard, projects & detail (with SortableJS kanban + invite modal), tickets list & detail (with comments/history), leaderboard, admin management, profile editing, and join-by-code.
-- **Gamification flow** awards XP based on ticket priority when status moves to `done`, logs XP events, and shows toast notifications.
-- **Tests**: `src/tests/gamification.spec.js` exercises XP awarding logic using Vitest.
+### Projects
 
-## Mocked backend
+| Method | Route | Notes |
+| ------ | ----- | ----- |
+| GET | `/api/v1/projects` | List projects. |
+| GET | `/api/v1/projects/:id` | Detail with members. |
+| POST | `/api/v1/projects` | Admin / project_manager only. Body `{ name, description, members[] }`. |
+| POST | `/api/v1/projects/:id/members` | Admin / project_manager: add member `{ userId, role? }`. |
+| POST | `/api/v1/projects/:id/invites` | Admin / project_manager: generate invite `{ maxUses, expiryDays }`. |
+| POST | `/api/v1/projects/join` | Body `{ code }` to join by invite. |
 
-- There are **no real API calls**. Stores mutate in-memory state and immediately persist to `localStorage`.
-- TODO comments in stores mark the exact spots where network calls/services should be dropped in.
-- Invite codes, ticket IDs, and XP events are generated locally via helper utilities.
+### Tickets
 
-When you connect a backend, replace the Pinia action bodies with API integrations, keep the persistence helpers only for optimistic updates or remove them entirely.
+| Method | Route | Notes |
+| ------ | ----- | ----- |
+| GET | `/api/v1/tickets` | Filters: `projectId`, `assigneeId`, `status`, `limit`. |
+| POST | `/api/v1/tickets` | Create ticket; body includes projectId/title/description/priority/type/etc. |
+| GET | `/api/v1/tickets/:id` | Ticket detail (history + comments included). |
+| PATCH | `/api/v1/tickets/:id/status` | Body `{ "status": "done" }`; awards XP when moving to `done`. |
+| POST | `/api/v1/tickets/:id/comments` | Body `{ "text": "..." }` adds a comment. |
+| DELETE | `/api/v1/tickets/:id` | Remove ticket (history/comments cascade). |
+
+### Gamification
+
+| Method | Route | Description |
+| ------ | ----- | ----------- |
+| GET | `/api/v1/gamification/stats/:userId` | Aggregated XP + level info. |
+| GET | `/api/v1/gamification/events` | XP feed (`?userId=&limit=`). |
+
+### Audit (admin / project_manager only)
+
+| Method | Route | Description |
+| ------ | ----- | ----------- |
+| GET | `/api/v1/audit` | Paginated audit trail (`?limit=`). |
+
+## API documentation (Swagger/OpenAPI)
+
+An OpenAPI spec lives at `docs/openapi.yaml`. To preview with Swagger UI locally:
+
+```bash
+npx redoc-cli serve ./docs/openapi.yaml
+```
+
+Atau impor file YAML ke Swagger Editor/Postman/Insomnia untuk eksplorasi.
+
+### Public utility endpoints
+
+- `GET /` – service ping
+- `GET /healthz` – health probe
+- `GET /version` – running service version
+
+## Architecture
+
+- `cmd/server` – bootstrap, config loading, DB pool init, graceful shutdown.
+- `cmd/dbcheck` – Supabase connectivity validator.
+- `internal/config` – environment loader (supports `.env`).
+- `internal/database` – pgx pool helper.
+- `internal/server` – Gin router + dependency injection.
+- Domain modules (`internal/auth`, `internal/users`, `internal/projects`, `internal/tickets`, `internal/gamification`, `internal/audit`) expose repository → service → handler layers.
+- `internal/middleware` – request ID + JWT auth/role middleware.
+
+Extend functionality by creating new repo/service/handler modules and registering them inside `internal/server`.

@@ -139,8 +139,13 @@ const visibleUsers = computed(() => {
 
 const adminCount = computed(() => users.value.filter((user) => user.role === 'admin').length)
 
-const updateRole = (userId, role) => {
+const updateRole = async (userId, role) => {
   if (!isAdmin.value) return
-  usersStore.updateUserRole(userId, role)
+  try {
+    await usersStore.updateUserRole(userId, role)
+  } catch (error) {
+    console.error(error)
+  }
 }
 </script>
+

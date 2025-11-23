@@ -16,7 +16,7 @@
         </div>
       </div>
     </div>
-
+    
     <div class="flex items-center gap-4">
       <!-- NOTIFICATION -->
       <button
@@ -66,14 +66,14 @@
   </header>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 import { useSidebar } from '@/components/atoms/ui/sidebar'
 
-const search = ref('')
+const search = ref<string>('')
 const showMenu = ref(false)
 
 const router = useRouter()
@@ -83,7 +83,9 @@ const { currentUser } = storeToRefs(auth)
 const fallbackAvatar = new URL('../assets/avatars/avatar-1.svg', import.meta.url).href
 const avatar = computed(() => currentUser.value?.avatar ?? fallbackAvatar)
 
-const toggleMenu = () => (showMenu.value = !showMenu.value)
+const toggleMenu = () => {
+  showMenu.value = !showMenu.value
+}
 
 const handleLogout = () => {
   auth.logout()

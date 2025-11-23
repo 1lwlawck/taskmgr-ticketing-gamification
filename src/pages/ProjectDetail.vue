@@ -48,6 +48,15 @@
               <RouterLink to="/tickets">
                 <Button variant="ghost" size="sm" class="text-white hover:bg-white/10">Tiket</Button>
               </RouterLink>
+              <Button
+                v-if="canLeaveProject"
+                variant="destructive"
+                size="sm"
+                class="bg-rose-500 text-white hover:bg-rose-600"
+                @click="confirmLeaveProject"
+              >
+                Leave
+              </Button>
             </div>
           </div>
         </div>
@@ -144,44 +153,77 @@
     <InviteModal :open="showInvite" :invite-code="latestInvite" @close="showInvite = false" @generate="generateInvite" />
   </section>
   <p v-else class="text-slate-500">Project not found.</p>
+
+  <div v-if="showLeaveConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur">
+    <div class="w-full max-w-md rounded-3xl border border-border bg-card p-6 text-sm shadow-2xl">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Leave</p>
+          <h2 class="text-xl font-semibold text-foreground">{{ project?.name }}</h2>
+        </div>
+        <button class="text-sm text-muted-foreground" @click="cancelLeaveProject">Close</button>
+      </div>
+      <p class="mt-4 text-sm text-muted-foreground">
+        Are you sure you want to leave this project? You will lose access until invited again.
+      </p>
+      <div class="mt-6 flex justify-end gap-2">
+        <Button type="button" variant="ghost" size="sm" class="text-muted-foreground" @click="cancelLeaveProject">Cancel</Button>
+        <Button type="button" variant="destructive" size="sm" @click="leaveProject">Leave project</Button>
+      </div>
+    </div>
+  </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import Sortable from 'sortablejs'
+import Sortable, { SortableEvent } from 'sortablejs'
 import InviteModal from '@/components/molecules/InviteModal.vue'
 import { Button } from '@/components/atoms/ui/button'
 import { useProjectsStore } from '@/stores/projects'
 import { useTicketsStore } from '@/stores/tickets'
 import { useUsersStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
-import { TICKET_STATUSES } from '@/utils/constants'
+import { useGamificationStore } from '@/stores/gamification'
+import { TICKET_STATUSES, type TicketStatus } from '@/utils/constants'
+import type { ProjectInvitePayload, ProjectMember, Ticket } from '@/types/models'
+
+defineOptions({ inheritAttrs: false })
 
 const router = useRouter()
 const route = useRoute()
 const projectsStore = useProjectsStore()
 const ticketsStore = useTicketsStore()
 const usersStore = useUsersStore()
+const gamificationStore = useGamificationStore()
 const showInvite = ref(false)
-const columnRefs = reactive({})
-const sortables = []
+const showLeaveConfirm = ref(false)
+const columnRefs = reactive<Record<string, HTMLElement | null>>({})
+const sortables: Sortable[] = []
 const auth = useAuthStore()
 
-const project = computed(() => projectsStore.getById(route.params.id))
-const statuses = [
+const projectId = computed(() => route.params.id as string)
+const project = computed(() => projectsStore.getById(projectId.value))
+const isMember = computed(() => {
+  if (!auth.currentUser || !project.value) return false
+  return project.value.members.some((member) => member.id === auth.currentUser?.id)
+})
+const canLeaveProject = computed(() => isMember.value)
+const statuses: Array<{ label: string; value: TicketStatus }> = [
   { label: 'Todo', value: 'todo' },
   { label: 'In Progress', value: 'in_progress' },
   { label: 'Review', value: 'review' },
   { label: 'Done', value: 'done' },
 ]
 
-const ticketsByStatus = (status) => {
+const ticketsByStatus = (status: TicketStatus) => {
   const boardIds = project.value?.board?.[status] ?? []
-  return boardIds.map((id) => ticketsStore.getById(id)).filter(Boolean)
+  return boardIds
+    .map((id) => ticketsStore.getById(id))
+    .filter((ticket): ticket is Ticket => Boolean(ticket))
 }
 
-const setColumnRef = (status) => (el) => {
+const setColumnRef = (status: TicketStatus) => (el: HTMLElement | null) => {
   if (el) columnRefs[status] = el
 }
 
@@ -209,15 +251,15 @@ const destroySortable = () => {
   }
 }
 
-const handleDrop = (evt) => {
+const handleDrop = async (evt: SortableEvent) => {
   const ticketId = evt.item?.dataset?.id
-  const fromStatus = evt.from?.dataset?.status
-  const toStatus = evt.to?.dataset?.status
+  const fromStatus = evt.from?.dataset?.status as TicketStatus | undefined
+  const toStatus = evt.to?.dataset?.status as TicketStatus | undefined
   if (!ticketId || !toStatus || fromStatus === toStatus) return
-  ticketsStore.updateTicketStatus(ticketId, toStatus, auth.currentUser?.id)
+  await ticketsStore.updateTicketStatus(ticketId, toStatus)
 }
 
-const openTicket = (ticketId) => router.push(`/tickets/${ticketId}`)
+const openTicket = (ticketId: string) => router.push(`/tickets/${ticketId}`)
 
 watch(
   () => project.value?.board,
@@ -227,22 +269,41 @@ watch(
   { deep: true }
 )
 
-onMounted(() => {
+const loadProject = async () => {
+  if (!projectId.value) return
+  try {
+    await projectsStore.fetchProject(projectId.value)
+  } catch (error) {
+    console.error('Failed to load project', error)
+  }
+}
+
+onMounted(async () => {
+  await loadProject()
   nextTick(() => initSortable())
 })
 
+watch(
+  () => projectId.value,
+  async (newId, oldId) => {
+    if (newId && newId !== oldId) {
+      await loadProject()
+    }
+  }
+)
+
 onBeforeUnmount(() => destroySortable())
 
-const generateInvite = ({ maxUses, expiryDays }) => {
+const generateInvite = async ({ maxUses, expiryDays }: ProjectInvitePayload) => {
   if (!project.value) return
-  const invite = projectsStore.generateInvite(project.value.id, { maxUses, expiryDays })
+  const invite = await projectsStore.generateInvite(project.value.id, { maxUses, expiryDays })
   latestInvite.value = invite?.code ?? ''
   showInvite.value = false
 }
 
 const latestInvite = ref('')
 
-const resolveUser = (id) => usersStore.getById(id)
+const resolveUser = (id: string) => usersStore.getById(id)
 
 const memberCount = computed(() => project.value?.members?.length ?? 0)
 const totalTickets = computed(() =>
@@ -262,7 +323,33 @@ const boardHealth = computed(() => {
   if (ratio > 0.4) return 'Balanced'
   return 'Chill'
 })
-const statsBadge = (member) => (member.role === 'admin' ? 'Owner' : 'Member')
+const statsBadge = (member: ProjectMember) => (member.role === 'admin' ? 'Owner' : 'Member')
+
+const confirmLeaveProject = () => {
+  showLeaveConfirm.value = true
+}
+
+const cancelLeaveProject = () => {
+  showLeaveConfirm.value = false
+}
+
+const leaveProject = async () => {
+  if (!project.value) return
+  try {
+    await projectsStore.leaveProject(project.value.id)
+    gamificationStore.pushToast({
+      title: 'Left project',
+      message: `You left ${project.value.name}`,
+    })
+    showLeaveConfirm.value = false
+    router.push('/projects')
+  } catch (error) {
+    gamificationStore.pushToast({
+      title: 'Failed to leave project',
+      message: error instanceof Error ? error.message : 'Please try again later',
+    })
+  }
+}
 </script>
 
 <style scoped>
