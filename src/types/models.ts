@@ -71,6 +71,7 @@ export interface TicketComment {
 }
 
 export interface Ticket {
+  epicId: string
   id: string
   projectId: string
   title: string
@@ -95,6 +96,7 @@ export interface CreateTicketPayload {
   description: string
   priority: TicketPriority
   type: TicketType
+  epicId?: string
   assigneeId?: string
   assigneeName?: string
   startDate?: string
@@ -125,6 +127,21 @@ export interface LeaderboardEntry {
   tickets_closed_count: number
   rank: number
   xpGap: number
+}
+
+export interface Epic {
+  id: string
+  projectId: string
+  title: string
+  description?: string
+  status: TicketStatus
+  startDate?: string
+  dueDate?: string
+  ownerId?: string
+  createdAt?: string
+  updatedAt?: string
+  doneCount?: number
+  totalCount?: number
 }
 
 export interface XpEvent {

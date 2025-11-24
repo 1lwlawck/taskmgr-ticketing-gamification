@@ -5,7 +5,7 @@ export const PRIORITY_XP_MAP = {
   urgent: 30,
 } as const
 
-export const TICKET_STATUSES = ['todo', 'in_progress', 'review', 'done'] as const
+export const TICKET_STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'] as const
 
 export const TICKET_TYPES = ['bug', 'feature', 'chore'] as const
 

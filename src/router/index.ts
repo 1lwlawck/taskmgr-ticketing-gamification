@@ -54,6 +54,14 @@ const router = createRouter({
           meta: { title: 'Ticket Detail' },
         },
         { path: 'leaderboard', name: 'leaderboard', component: Leaderboard, meta: { title: 'Leaderboard' } },
+        { path: 'epics', name: 'epics', component: () => import('@/pages/Epics.vue'), meta: { title: 'Epics' } },
+        {
+          path: 'epics/:id',
+          name: 'epic-detail',
+          component: () => import('@/pages/EpicDetail.vue'),
+          props: true,
+          meta: { title: 'Epic Detail' },
+        },
         {
           path: 'admin/users',
           name: 'admin-users',

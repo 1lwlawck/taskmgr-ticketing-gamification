@@ -128,6 +128,9 @@
               >
                 <p class="font-semibold text-foreground">{{ ticket.title }}</p>
                 <p class="text-xs text-muted-foreground capitalize">{{ ticket.priority }} / {{ ticket.type }}</p>
+                <p v-if="ticket.epicTitle" class="mt-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 mr-2">
+                  Epic: {{ ticket.epicTitle }}
+                </p>
                 <button class="mt-2 text-xs text-primary underline" @click="openTicket(ticket.id)">Open ticket</button>
               </article>
               <p v-if="ticketsByStatus(status.value).length === 0" class="text-xs text-muted-foreground">Belum ada tiket.</p>
@@ -185,6 +188,7 @@ import { useTicketsStore } from '@/stores/tickets'
 import { useUsersStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
 import { useGamificationStore } from '@/stores/gamification'
+import { useEpicsStore } from '@/stores/epics'
 import { TICKET_STATUSES, type TicketStatus } from '@/utils/constants'
 import type { ProjectInvitePayload, ProjectMember, Ticket } from '@/types/models'
 
@@ -196,6 +200,7 @@ const projectsStore = useProjectsStore()
 const ticketsStore = useTicketsStore()
 const usersStore = useUsersStore()
 const gamificationStore = useGamificationStore()
+const epicsStore = useEpicsStore()
 const showInvite = ref(false)
 const showLeaveConfirm = ref(false)
 const columnRefs = reactive<Record<string, HTMLElement | null>>({})
@@ -210,6 +215,7 @@ const isMember = computed(() => {
 })
 const canLeaveProject = computed(() => isMember.value)
 const statuses: Array<{ label: string; value: TicketStatus }> = [
+  { label: 'Backlog', value: 'backlog' },
   { label: 'Todo', value: 'todo' },
   { label: 'In Progress', value: 'in_progress' },
   { label: 'Review', value: 'review' },
@@ -221,6 +227,10 @@ const ticketsByStatus = (status: TicketStatus) => {
   return boardIds
     .map((id) => ticketsStore.getById(id))
     .filter((ticket): ticket is Ticket => Boolean(ticket))
+    .map((ticket) => ({
+      ...ticket,
+      epicTitle: ticket.epicId ? resolveEpicTitle(ticket.epicId) : undefined,
+    }))
 }
 
 const setColumnRef = (status: TicketStatus) => (el: HTMLElement | null) => {
@@ -324,6 +334,10 @@ const boardHealth = computed(() => {
   return 'Chill'
 })
 const statsBadge = (member: ProjectMember) => (member.role === 'admin' ? 'Owner' : 'Member')
+const resolveEpicTitle = (epicId: string) => {
+  const epic = epicsStore.items.find((e) => e.id === epicId)
+  return epic?.title
+}
 
 const confirmLeaveProject = () => {
   showLeaveConfirm.value = true

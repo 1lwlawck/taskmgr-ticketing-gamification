@@ -39,10 +39,10 @@
     <div class="grid gap-6 md:grid-cols-3">
       <AppCard title="Backlog load" description="Items waiting to be started">
         <div class="space-y-3">
-          <p class="text-4xl font-semibold text-foreground">{{ statusCounts.todo ?? 0 }}</p>
-          <p class="text-sm text-muted-foreground">{{ percentOfTotal(statusCounts.todo ?? 0) }}% of total</p>
+          <p class="text-4xl font-semibold text-foreground">{{ statusCounts.backlog ?? 0 }}</p>
+          <p class="text-sm text-muted-foreground">{{ percentOfTotal(statusCounts.backlog ?? 0) }}% of total</p>
           <div class="h-2 w-full rounded-full bg-slate-200">
-            <span class="block h-full rounded-full bg-slate-900" :style="{ width: percentOfTotal(statusCounts.todo ?? 0) + '%' }"></span>
+            <span class="block h-full rounded-full bg-slate-900" :style="{ width: percentOfTotal(statusCounts.backlog ?? 0) + '%' }"></span>
           </div>
         </div>
       </AppCard>
@@ -66,16 +66,16 @@
       </AppCard>
     </div>
 
-    <AppCard title="Queue overview" description="Search, triage, and keep work unblocked.">
-      <template #action>
-        <div class="flex flex-wrap items-center gap-3">
-          <div class="relative">
-            <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input v-model="query" placeholder="Search title, assignee, project" class="w-64 bg-transparent pl-9" />
-          </div>
-          <Button size="sm" class="bg-slate-900 text-white" @click="openCreate">New ticket</Button>
+  <AppCard title="Queue overview" description="Search, triage, and keep work unblocked.">
+    <template #action>
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="relative">
+          <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input v-model="query" placeholder="Search title, assignee, project" class="w-64 bg-transparent pl-9" />
         </div>
-      </template>
+        <Button size="sm" class="bg-slate-900 text-white" @click="openCreate">New ticket</Button>
+      </div>
+    </template>
 
       <div class="mb-4 flex flex-wrap gap-2">
         <button
@@ -90,6 +90,15 @@
             {{ statusCounts[option.value] ?? 0 }}
           </span>
         </button>
+        <div class="ml-auto flex flex-wrap items-center gap-2">
+          <span class="text-xs uppercase text-muted-foreground">Epic</span>
+          <select v-model="epicFilter" class="rounded-full border px-3 py-1 text-xs font-medium">
+            <option value="all">All epics</option>
+            <option v-for="epic in epicsByProject" :key="epic.id" :value="epic.id">
+              {{ epic.title }} ({{ epic.doneCount ?? 0 }}/{{ epic.totalCount ?? 0 }})
+            </option>
+          </select>
+        </div>
       </div>
 
       <div class="overflow-hidden rounded-2xl border border-border">
@@ -152,6 +161,60 @@
     </AppCard>
 
     <div class="grid gap-6 lg:grid-cols-2">
+      <AppCard title="Backlog pipeline" description="Tickets waiting to be started.">
+        <div v-if="backlogTickets.length" class="space-y-3">
+          <div v-for="ticket in backlogTickets" :key="ticket.id" class="rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-semibold text-foreground">{{ ticket.title }}</p>
+                <p class="text-xs text-muted-foreground">{{ projectDisplay(ticket.projectId) }} / {{ assigneeLabel(ticket) }}</p>
+              </div>
+              <span :class="priorityPillClass(ticket.priority)" class="inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize">
+                {{ ticket.priority }}
+              </span>
+            </div>
+            <p class="mt-1 text-xs text-muted-foreground">Due {{ dueLabel(ticket) }}</p>
+            <div class="mt-2 flex gap-2">
+              <Button size="xs" variant="ghost" @click="openDetail(ticket.id)">View</Button>
+              <Button size="xs" variant="outline" v-if="canManageTicket(ticket)" @click="editTicket(ticket)">Edit</Button>
+            </div>
+          </div>
+        </div>
+        <p v-else class="text-sm text-muted-foreground">No backlog items.</p>
+      </AppCard>
+
+      <AppCard title="Epics" description="Track initiatives and their progress.">
+        <div class="mb-3 flex items-center justify-between text-xs text-muted-foreground">
+          <div class="flex items-center gap-2">
+            <span>Epics</span>
+            <select v-model="epicProjectFilter" class="rounded-full border px-2 py-1 text-xs font-semibold">
+              <option value="all">All projects</option>
+              <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
+            </select>
+          </div>
+          <RouterLink to="/epics" class="text-primary underline">Manage epics</RouterLink>
+        </div>
+        <div v-if="epicsByProject.length" class="space-y-2">
+          <div v-for="epic in epicsByProject" :key="epic.id" class="rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-semibold text-foreground">{{ epic.title }}</p>
+                <p class="text-xs text-muted-foreground">{{ epic.description || 'No description' }}</p>
+              </div>
+              <span class="text-xs rounded-full border px-2 py-0.5 capitalize text-muted-foreground">{{ epic.status }}</span>
+            </div>
+            <div class="mt-2 h-2 rounded-full bg-slate-200">
+              <span
+                class="block h-full rounded-full bg-indigo-500"
+                :style="{ width: epicProgress(epic).percent + '%' }"
+              ></span>
+            </div>
+            <p class="mt-1 text-xs text-muted-foreground">{{ epicProgressText(epic) }} done</p>
+          </div>
+        </div>
+        <p v-else class="text-sm text-muted-foreground">No epics yet.</p>
+      </AppCard>
+
       <AppCard title="Deadline radar" description="Next due tickets in the queue.">
         <ul v-if="upcomingTickets.length" class="space-y-4">
           <li v-for="ticket in upcomingTickets" :key="ticket.id" class="flex items-start justify-between rounded-2xl border border-border bg-muted/40 px-4 py-3">
@@ -196,31 +259,46 @@
             <span class="text-xs uppercase text-slate-500">Title</span>
             <input v-model="form.title" required class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm" />
           </label>
-          <label class="space-y-1 sm:col-span-2">
-            <span class="text-xs uppercase text-slate-500">Description</span>
-            <textarea v-model="form.description" rows="3" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm"></textarea>
-          </label>
-          <label class="space-y-1">
-            <span class="text-xs uppercase text-slate-500">Priority</span>
-            <select v-model="form.priority" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
+        <label class="space-y-1 sm:col-span-2">
+          <span class="text-xs uppercase text-slate-500">Description</span>
+          <textarea v-model="form.description" rows="3" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm"></textarea>
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs uppercase text-slate-500">Project</span>
+          <select v-model="form.projectId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
+            <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
+          </select>
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs uppercase text-slate-500">Priority</span>
+          <select v-model="form.priority" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
               <option value="high">High</option>
               <option value="urgent">Urgent</option>
             </select>
           </label>
           <label class="space-y-1">
-            <span class="text-xs uppercase text-slate-500">Type</span>
-            <select v-model="form.type" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-              <option value="bug">Bug</option>
-              <option value="feature">Feature</option>
-              <option value="chore">Chore</option>
-            </select>
-          </label>
+          <span class="text-xs uppercase text-slate-500">Type</span>
+          <select v-model="form.type" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
+            <option value="bug">Bug</option>
+            <option value="feature">Feature</option>
+            <option value="chore">Chore</option>
+          </select>
+        </label>
         <label class="space-y-1">
           <span class="text-xs uppercase text-slate-500">Assignee</span>
           <select v-model="form.assigneeId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-            <option :value="user.id" v-for="user in users" :key="user.id">{{ user.name }}</option>
+            <option :value="user.id" v-for="user in assigneeOptions" :key="user.id">{{ user.name }}</option>
+          </select>
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs uppercase text-slate-500">Epic</span>
+          <select v-model="form.epicId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
+            <option :value="undefined">No epic</option>
+            <option v-for="epic in epicsByProject" :key="epic.id" :value="epic.id">
+              {{ epic.title }} ({{ epic.doneCount ?? 0 }}/{{ epic.totalCount ?? 0 }})
+            </option>
           </select>
         </label>
         <label class="space-y-1">
@@ -258,7 +336,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import ConfirmModal from '@/components/molecules/ConfirmModal.vue'
@@ -268,6 +346,7 @@ import { Input } from '@/components/atoms/ui/input'
 import { Search } from 'lucide-vue-next'
 import { useTicketsStore } from '@/stores/tickets'
 import { useUsersStore } from '@/stores/users'
+import { useEpicsStore } from '@/stores/epics'
 import { useProjectsStore } from '@/stores/projects'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/utils/helpers'
@@ -280,6 +359,9 @@ const ticketsStore = useTicketsStore()
 const { tickets } = storeToRefs(ticketsStore)
 const usersStore = useUsersStore()
 const { users } = storeToRefs(usersStore)
+const epicsStore = useEpicsStore()
+const { items: epics } = storeToRefs(epicsStore)
+const epicProjectFilter = ref<'all' | string>('all')
 const projectsStore = useProjectsStore()
 const { projects } = storeToRefs(projectsStore)
 const auth = useAuthStore()
@@ -290,27 +372,24 @@ const editingId = ref(null)
 const confirming = ref(null)
 const toast = reactive({ open: false, variant: 'success', message: '' })
 const query = ref<string>((route.query.q as string) ?? '')
-watch(
-  () => route.query.q,
-  (val) => {
-    query.value = (val as string) ?? ''
-  }
-)
 const statusFilter = ref('all')
+const epicFilter = ref('all')
 const statusOptions = [
   { label: 'All', value: 'all' },
+  { label: 'Backlog', value: 'backlog' },
   { label: 'Todo', value: 'todo' },
   { label: 'In progress', value: 'in_progress' },
-  { label: 'Blocked', value: 'blocked' },
+  { label: 'Review', value: 'review' },
   { label: 'Done', value: 'done' },
 ]
 const statusBreakdownOptions = statusOptions.filter((option) => option.value !== 'all')
-const defaultProjectId = () => projects.value[0]?.id ?? 'project-core'
+const defaultProjectId = () => projects.value[0]?.id ?? ''
 type TicketFormState = {
   title: string
   description: string
   priority: TicketPriority
   type: TicketType
+  epicId?: string
   assigneeId?: string
   startDate: string
   dueDate: string
@@ -322,11 +401,42 @@ const form = reactive<TicketFormState>({
   description: '',
   priority: 'medium',
   type: 'feature',
+  epicId: undefined,
   assigneeId: users.value[0]?.id,
   startDate: '',
   dueDate: '',
   projectId: defaultProjectId(),
 })
+
+watch(
+  () => route.query.q,
+  (val) => {
+    query.value = (val as string) ?? ''
+  }
+)
+
+watch(
+  () => form.projectId,
+  async (val) => {
+    if (val) {
+      // pastikan detail project (beserta members) ter-load supaya assignee list terisi
+      await projectsStore.fetchProject(val)
+      await epicsStore.fetchByProject(val)
+      form.epicId = undefined
+      const firstAssignee = assigneeOptions.value[0]
+      form.assigneeId = firstAssignee?.id
+    }
+  },
+  { immediate: true }
+)
+watch(
+  () => projects.value.length,
+  (len) => {
+    if (len && !form.projectId) {
+      form.projectId = projects.value[0].id
+    }
+  }
+)
 const projectNameById = computed(() =>
   projects.value.reduce((acc, project) => {
     acc[project.id] = project.name
@@ -334,8 +444,48 @@ const projectNameById = computed(() =>
   }, {})
 )
 
+const selectedProject = computed(() => projects.value.find((p) => p.id === form.projectId))
+const projectMembers = computed(() => selectedProject.value?.members ?? [])
+const assigneeOptions = computed(() => {
+  if (!projectMembers.value.length) return []
+  const ids = new Set(projectMembers.value.map((m) => m.id))
+  return users.value.filter((u) => ids.has(u.id))
+})
+
+const ticketProjectIds = computed(() => new Set(tickets.value.map((t) => t.projectId).filter(Boolean)))
+const epicsForForm = computed(() => epicsStore.byProject(form.projectId))
+const epicsForDisplay = computed(() =>
+  epics.value.filter((e) => epicProjectFilter.value === 'all' || e.projectId === epicProjectFilter.value)
+)
+// Derive live epic progress from current tickets to keep bar accurate after moves
+const epicStats = computed<Record<string, { done: number; total: number }>>(() => {
+  const stats: Record<string, { done: number; total: number }> = {}
+  tickets.value.forEach((t) => {
+    if (!t.epicId) return
+    const entry = stats[t.epicId] || { done: 0, total: 0 }
+    entry.total += 1
+    if (t.status === 'done') entry.done += 1
+    stats[t.epicId] = entry
+  })
+  return stats
+})
+const epicProgress = (epic: any) => {
+  const stat = epicStats.value[epic.id]
+  const done = stat?.done ?? epic.doneCount ?? 0
+  const total = stat?.total ?? epic.totalCount ?? 0
+  const percent = total ? Math.round((done / total) * 100) : 0
+  return { done, total, percent }
+}
+const epicProgressText = (epic) => {
+  const { done, total } = epicProgress(epic)
+  return `${done}/${total || 0}`
+}
+
+// For backward template references; display epics are decoupled from the create form project selection
+const epicsByProject = epicsForDisplay
+
 const statusCounts = computed(() => {
-  const base = { todo: 0, in_progress: 0, blocked: 0, done: 0 }
+  const base: Record<string, number> = { backlog: 0, todo: 0, in_progress: 0, review: 0, done: 0 }
   tickets.value.forEach((ticket) => {
     const key = ticket.status ?? 'todo'
     base[key] = (base[key] ?? 0) + 1
@@ -382,6 +532,10 @@ const filteredTickets = computed(() => {
       return ticket.status === statusFilter.value
     })
     .filter((ticket) => {
+      if (epicFilter.value === 'all') return true
+      return ticket.epicId === epicFilter.value
+    })
+    .filter((ticket) => {
       if (!queryValue) return true
       const projectName = (projectNameById.value[ticket.projectId] ?? '').toLowerCase()
       return (
@@ -401,6 +555,12 @@ const upcomingTickets = computed(() =>
     .sort((a, b) => a.due.getTime() - b.due.getTime())
     .slice(0, 4)
     .map((item) => item.ticket)
+)
+
+const backlogTickets = computed(() =>
+  tickets.value
+    .filter((ticket) => ticket.status === 'backlog')
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))
 )
 
 const formatStatus = (status) => status?.replace('_', ' ') ?? '-'
@@ -442,6 +602,7 @@ const openCreate = () => {
     description: '',
     priority: 'medium' as TicketPriority,
     type: 'feature' as TicketType,
+    epicId: undefined,
     assigneeId: users.value[0]?.id,
     startDate: '',
     dueDate: '',
@@ -462,6 +623,7 @@ const editTicket = (ticket: Ticket) => {
     description: ticket.description,
     priority: ticket.priority,
     type: ticket.type,
+    epicId: ticket.epicId,
     assigneeId: ticket.assigneeId,
     startDate: ticket.startDate ? ticket.startDate.slice(0, 10) : '',
     dueDate: ticket.dueDate ? ticket.dueDate.slice(0, 10) : '',
@@ -482,6 +644,7 @@ const handleSubmit = async () => {
         priority: form.priority,
         type: form.type,
         assigneeId: form.assigneeId,
+        epicId: form.epicId ?? '',
         startDate: startDateIso,
         dueDate: dueDateIso,
         projectId: form.projectId,
@@ -497,6 +660,7 @@ const handleSubmit = async () => {
         description: form.description,
         priority: form.priority,
         type: form.type,
+        epicId: form.epicId,
         assigneeId: form.assigneeId,
         startDate: startDateIso,
         dueDate: dueDateIso,
@@ -545,6 +709,20 @@ const showToast = (message: string, variant = 'success') => {
   toast.open = true
   setTimeout(() => (toast.open = false), 2500)
 }
+
+onMounted(async () => {
+  if (!projects.value.length) await projectsStore.fetchProjects()
+  if (!users.value.length) await usersStore.fetchUsers()
+  if (!tickets.value.length) await ticketsStore.fetchTickets(true)
+  if (form.projectId) {
+    await epicsStore.fetchByProject(form.projectId)
+  }
+  // preload epics for all projects so tracks can show everything
+  if (projects.value.length) {
+    const tasks = projects.value.map((p) => epicsStore.fetchByProject(p.id))
+    await Promise.allSettled(tasks)
+  }
+})
 </script>
 
 

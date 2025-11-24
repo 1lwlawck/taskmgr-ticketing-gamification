@@ -217,6 +217,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none"><path d="M21 10V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3a2 2 0 0 1 0 4v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3a2 2 0 0 1 0-4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 10h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   leaderboard:
     '<svg viewBox="0 0 24 24" fill="none"><path d="M4 16h4V8H4zM10 16h4V4h-4zM16 16h4V11h-4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  epics:
+    '<svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h10M4 17h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   profile:
     '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M5 21v-2a7 7 0 1 1 14 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   shield:
@@ -235,6 +237,7 @@ interface NavItem {
 const nav: NavItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: 'dashboard' },
   { label: 'Tickets', to: '/tickets', icon: 'tickets' },
+  { label: 'Epics', to: '/epics', icon: 'epics' },
   { label: 'Leaderboard', to: '/leaderboard', icon: 'leaderboard' },
   { label: 'Profile', to: '/profile', icon: 'profile' },
   { label: 'Admin', to: '/admin/users', icon: 'shield', role: 'admin' },

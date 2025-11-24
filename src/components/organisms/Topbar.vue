@@ -68,7 +68,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 import { useSidebar } from '@/components/atoms/ui/sidebar'
@@ -77,6 +77,7 @@ const search = ref<string>('')
 const showMenu = ref(false)
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 const { currentUser } = storeToRefs(auth)
 
@@ -89,7 +90,11 @@ const toggleMenu = () => {
 
 const handleSearch = () => {
   const q = search.value.trim()
-  router.push({ path: '/tickets', query: q ? { q } : {} })
+  if (route.path !== '/tickets') {
+    router.push({ path: '/tickets', query: q ? { q } : {} })
+  } else {
+    router.push({ query: q ? { q } : {} })
+  }
 }
 
 const handleLogout = () => {

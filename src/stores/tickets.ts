@@ -15,6 +15,7 @@ const normalizeTicket = (payload: any): Ticket => ({
   priority: payload.priority,
   type: payload.type,
   reporterId: payload.reporterId ?? undefined,
+  epicId: payload.epicId ?? undefined,
   assigneeId: payload.assigneeId ?? undefined,
   assigneeName: payload.assigneeName ?? undefined,
   startDate: payload.startDate ?? undefined,
@@ -46,6 +47,13 @@ export const useTicketsStore = defineStore('tickets', {
     byProject: (state) => (projectId: string) => state.tickets.filter((t) => t.projectId === projectId),
   },
   actions: {
+    upsertList(list: Ticket[]) {
+      list.forEach((ticket) => {
+        const idx = this.tickets.findIndex((t) => t.id === ticket.id)
+        if (idx >= 0) this.tickets[idx] = ticket
+        else this.tickets.push(ticket)
+      })
+    },
     async refreshGamification() {
       const auth = useAuthStore()
       const gamification = useGamificationStore()
@@ -67,6 +75,18 @@ export const useTicketsStore = defineStore('tickets', {
         throw handleApiError(error)
       } finally {
         this.loading = false
+      }
+    },
+    async fetchTicketsByEpic(epicId: string) {
+      if (!epicId) return []
+      try {
+        const { data } = await api.get('/tickets', { params: { epicId } })
+        const list = (data?.data ?? []).map(normalizeTicket)
+        this.upsertList(list)
+        useProjectsStore().syncBoardsWithTickets(this.tickets)
+        return list
+      } catch (error) {
+        throw handleApiError(error)
       }
     },
     async fetchTicket(ticketId: string, force = false) {
@@ -96,6 +116,7 @@ export const useTicketsStore = defineStore('tickets', {
           description: payload.description,
           priority: payload.priority,
           type: payload.type,
+          epicId: payload.epicId,
           assigneeId: payload.assigneeId,
           startDate: payload.startDate,
           dueDate: payload.dueDate,
@@ -118,6 +139,7 @@ export const useTicketsStore = defineStore('tickets', {
       if (payload.priority !== undefined) body.priority = payload.priority
       if (payload.type !== undefined) body.type = payload.type
       if (payload.assigneeId !== undefined) body.assigneeId = payload.assigneeId ?? ''
+      if (payload.epicId !== undefined) body.epicId = payload.epicId ?? ''
       if (payload.clearStartDate) {
         body.clearStartDate = true
       } else if (payload.startDate !== undefined) {
