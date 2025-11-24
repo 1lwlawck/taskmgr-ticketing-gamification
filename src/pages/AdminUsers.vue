@@ -23,10 +23,10 @@
             </div>
           </div>
         </div>
-        <div class="flex flex-wrap gap-3">
+        <!-- <div class="flex flex-wrap gap-3">
           <Button variant="secondary" class="border border-white/30 bg-white/15 text-white hover:bg-white/25">Invite user</Button>
           <Button variant="ghost" class="text-white hover:bg-white/10">Roles</Button>
-        </div>
+        </div> -->
       </div>
     </div>
 

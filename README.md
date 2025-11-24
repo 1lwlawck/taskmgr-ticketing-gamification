@@ -10,6 +10,11 @@ Vue 3 + Vite + Pinia frontend for the ticketing + gamification app.
 3. Dev server: `npm run dev`
 4. Build: `npm run build` (outputs to `dist/`)
 
+## Running end-to-end
+- Start backend (see backend README). Ensure migrations applied and API reachable at `http://localhost:8080`.
+- Start frontend: `npm run dev`, open the provided URL (default http://localhost:5173).
+- Use credentials you registered in the app (or seeded users if you ran the backend seeder).
+
 ## Auth
 - Login/Register hit `/auth/login` and `/auth/register`.
 - Change password is available on the Profile page; calls `POST /auth/change-password` (requires JWT and API key if enabled).
