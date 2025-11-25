@@ -1,8 +1,8 @@
 <template>
-  <SidebarRoot class="flex-none border-r border-border bg-slate-50 text-sidebar-foreground">
+  <SidebarRoot class="flex-none border-r border-border bg-white text-sidebar-foreground">
     <SidebarHeader class="border-b border-border px-4 py-4">
       <div class="flex items-center gap-3">
-        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-600">
           <span class="text-sm font-semibold">{{ initials }}</span>
         </div>
         <div class="flex-1 space-y-1 text-sm">
@@ -236,8 +236,9 @@ interface NavItem {
 
 const nav: NavItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: 'dashboard' },
-  { label: 'Tickets', to: '/tickets', icon: 'tickets' },
   { label: 'Epics', to: '/epics', icon: 'epics' },
+  { label: 'Tickets', to: '/tickets', icon: 'tickets' },
+  
   { label: 'Leaderboard', to: '/leaderboard', icon: 'leaderboard' },
   { label: 'Profile', to: '/profile', icon: 'profile' },
   { label: 'Admin', to: '/admin/users', icon: 'shield', role: 'admin' },

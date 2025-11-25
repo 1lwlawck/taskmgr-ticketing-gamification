@@ -1,8 +1,8 @@
 <template>
   <section class="space-y-8">
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
-      <div class="pointer-events-none absolute -right-16 -top-10 h-40 w-40 rounded-full bg-white/15 blur-3xl"></div>
-      <div class="pointer-events-none absolute -left-12 bottom-0 h-48 w-48 rounded-full bg-indigo-500/30 blur-3xl"></div>
+      <div class="pointer-events-none absolute -right-16 -top-10 h-40 w-40 rounded-md bg-white/15 blur-3xl"></div>
+      <div class="pointer-events-none absolute -left-12 bottom-0 h-48 w-48 rounded-md bg-indigo-500/30 blur-3xl"></div>
       <div class="relative flex flex-col gap-8 p-8 lg:flex-row lg:items-center lg:justify-between">
         <div class="space-y-4">
           <p class="text-xs uppercase tracking-[0.4em] text-white/70">Ops queue</p>
@@ -30,7 +30,7 @@
             New ticket
           </Button>
           <RouterLink to="/projects">
-            <Button variant="ghost" class="text-white hover:bg-white/10">View projects</Button>
+            <Button variant="ghost" class="text-white hover:bg-white/10 hover:text-white">View projects</Button>
           </RouterLink>
         </div>
       </div>
@@ -41,8 +41,8 @@
         <div class="space-y-3">
           <p class="text-4xl font-semibold text-foreground">{{ statusCounts.backlog ?? 0 }}</p>
           <p class="text-sm text-muted-foreground">{{ percentOfTotal(statusCounts.backlog ?? 0) }}% of total</p>
-          <div class="h-2 w-full rounded-full bg-slate-200">
-            <span class="block h-full rounded-full bg-slate-900" :style="{ width: percentOfTotal(statusCounts.backlog ?? 0) + '%' }"></span>
+          <div class="h-2 w-full rounded-md bg-slate-200">
+            <span class="block h-full rounded-md bg-slate-900" :style="{ width: percentOfTotal(statusCounts.backlog ?? 0) + '%' }"></span>
           </div>
         </div>
       </AppCard>
@@ -50,8 +50,8 @@
         <div class="space-y-3">
           <p class="text-4xl font-semibold text-foreground">{{ statusCounts.in_progress ?? 0 }}</p>
           <p class="text-sm text-muted-foreground">{{ percentOfTotal(statusCounts.in_progress ?? 0) }}% of total</p>
-          <div class="h-2 w-full rounded-full bg-slate-200">
-            <span class="block h-full rounded-full bg-indigo-500" :style="{ width: percentOfTotal(statusCounts.in_progress ?? 0) + '%' }"></span>
+          <div class="h-2 w-full rounded-md bg-slate-200">
+            <span class="block h-full rounded-md bg-indigo-500" :style="{ width: percentOfTotal(statusCounts.in_progress ?? 0) + '%' }"></span>
           </div>
         </div>
       </AppCard>
@@ -59,8 +59,8 @@
         <div class="space-y-3">
           <p class="text-4xl font-semibold text-foreground">{{ statusCounts.done ?? 0 }}</p>
           <p class="text-sm text-muted-foreground">{{ percentOfTotal(statusCounts.done ?? 0) }}% of total</p>
-          <div class="h-2 w-full rounded-full bg-slate-200">
-            <span class="block h-full rounded-full bg-emerald-500" :style="{ width: percentOfTotal(statusCounts.done ?? 0) + '%' }"></span>
+          <div class="h-2 w-full rounded-md bg-slate-200">
+            <span class="block h-full rounded-md bg-emerald-500" :style="{ width: percentOfTotal(statusCounts.done ?? 0) + '%' }"></span>
           </div>
         </div>
       </AppCard>
@@ -81,7 +81,7 @@
         <button
           v-for="option in statusOptions"
           :key="option.value"
-          class="rounded-full border px-3 py-1 text-xs font-medium transition"
+          class="rounded-md border px-3 py-1 text-xs font-medium transition"
           :class="statusFilter === option.value ? 'border-slate-900 bg-slate-900 text-white' : 'border-border text-muted-foreground hover:text-foreground'"
           @click="statusFilter = option.value"
         >
@@ -92,7 +92,7 @@
         </button>
         <div class="ml-auto flex flex-wrap items-center gap-2">
           <span class="text-xs uppercase text-muted-foreground">Epic</span>
-          <select v-model="epicFilter" class="rounded-full border px-3 py-1 text-xs font-medium">
+          <select v-model="epicFilter" class="rounded-md border px-3 py-1 text-xs font-medium">
             <option value="all">All epics</option>
             <option v-for="epic in epicsByProject" :key="epic.id" :value="epic.id">
               {{ epic.title }} ({{ epic.doneCount ?? 0 }}/{{ epic.totalCount ?? 0 }})
@@ -123,7 +123,7 @@
                 {{ projectDisplay(ticket.projectId) }}
               </td>
               <td class="px-4 py-3">
-                <span :class="priorityPillClass(ticket.priority)" class="inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize">
+                <span :class="priorityPillClass(ticket.priority)" class="inline-flex rounded-md border px-2 py-0.5 text-xs font-semibold capitalize">
                   {{ ticket.priority }}
                 </span>
               </td>
@@ -169,7 +169,7 @@
                 <p class="text-sm font-semibold text-foreground">{{ ticket.title }}</p>
                 <p class="text-xs text-muted-foreground">{{ projectDisplay(ticket.projectId) }} / {{ assigneeLabel(ticket) }}</p>
               </div>
-              <span :class="priorityPillClass(ticket.priority)" class="inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize">
+              <span :class="priorityPillClass(ticket.priority)" class="inline-flex rounded-md border px-2 py-0.5 text-xs font-semibold capitalize">
                 {{ ticket.priority }}
               </span>
             </div>
@@ -187,7 +187,7 @@
         <div class="mb-3 flex items-center justify-between text-xs text-muted-foreground">
           <div class="flex items-center gap-2">
             <span>Epics</span>
-            <select v-model="epicProjectFilter" class="rounded-full border px-2 py-1 text-xs font-semibold">
+            <select v-model="epicProjectFilter" class="rounded-md border px-2 py-1 text-xs font-semibold">
               <option value="all">All projects</option>
               <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
             </select>
@@ -201,11 +201,11 @@
                 <p class="text-sm font-semibold text-foreground">{{ epic.title }}</p>
                 <p class="text-xs text-muted-foreground">{{ epic.description || 'No description' }}</p>
               </div>
-              <span class="text-xs rounded-full border px-2 py-0.5 capitalize text-muted-foreground">{{ epic.status }}</span>
+              <span class="text-xs rounded-md border px-2 py-0.5 capitalize text-muted-foreground">{{ epic.status }}</span>
             </div>
-            <div class="mt-2 h-2 rounded-full bg-slate-200">
+            <div class="mt-2 h-2 rounded-md bg-slate-200">
               <span
-                class="block h-full rounded-full bg-indigo-500"
+                class="block h-full rounded-md bg-indigo-500"
                 :style="{ width: epicProgress(epic).percent + '%' }"
               ></span>
             </div>
@@ -224,7 +224,7 @@
             </div>
             <div class="text-right">
               <p class="text-sm font-semibold text-foreground">{{ dueLabel(ticket) }}</p>
-              <span :class="priorityPillClass(ticket.priority)" class="inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize">
+              <span :class="priorityPillClass(ticket.priority)" class="inline-flex rounded-md border px-2 py-0.5 text-xs font-semibold capitalize">
                 {{ ticket.priority }}
               </span>
             </div>
@@ -240,9 +240,9 @@
               <span>{{ option.label }}</span>
               <span>{{ statusCounts[option.value] ?? 0 }}</span>
             </div>
-            <div class="h-2 w-full rounded-full bg-slate-200">
+            <div class="h-2 w-full rounded-md bg-slate-200">
               <span
-                class="block h-full rounded-full bg-slate-900"
+                class="block h-full rounded-md bg-slate-900"
                 :style="{ width: percentOfTotal(statusCounts[option.value] ?? 0) + '%' }"
               ></span>
             </div>
