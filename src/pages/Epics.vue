@@ -12,10 +12,10 @@
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-          <select v-model="selectedProject" class="rounded-2xl border border-white/30 bg-white/10 px-3 py-2 text-sm text-white shadow-inner">
-            <option :value="project.id" v-for="project in projects" :key="project.id">{{ project.name }}</option>
+          <select v-model="selectedProject" class="rounded-md border border-white bg-white px-10 py-2 text-sm text-black shadow-black inner">
+            <option :value="project.id" v-for="project in projects" :key="project.id" class=" rounded-md  bg-white/30 text-black">{{ project.name }}</option>
           </select>
-          <button class="rounded-2xl border border-white/30 bg-white/15 px-3 py-2 text-sm text-white hover:bg-white/25" @click="fetchEpics">Refresh</button>
+          <button class="rounded-md border border-white/30 bg-white/15 px-3 py-2 text-sm text-white hover:bg-white/25" @click="fetchEpics">Refresh</button>
         </div>
       </div>
     </div>
@@ -33,22 +33,27 @@
           <p v-if="!canManageEpics" class="text-xs text-rose-600">Hanya admin / project manager yang bisa membuat atau mengedit epics.</p>
           <form class="mt-3 grid gap-3 md:grid-cols-2" @submit.prevent="handleCreate">
             <label class="space-y-1 md:col-span-2">
-              <span class="text-xs uppercase text-muted-foreground">Title</span>
+              <span class="text-xs uppercase text-muted-foreground">Title <span class="text-rose-500">*</span></span>
               <input v-model="form.title" required class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm" placeholder="Customer onboarding revamp" />
+              <p v-if="errors.title" class="text-[11px] text-rose-600">{{ errors.title }}</p>
             </label>
             <label class="space-y-1 md:col-span-2">
-              <span class="text-xs uppercase text-muted-foreground">Description</span>
-              <textarea v-model="form.description" rows="2" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm" placeholder="Goal, scope, definition of done"></textarea>
+              <span class="text-xs uppercase text-muted-foreground">Description <span class="text-rose-500">*</span></span>
+              <textarea
+                v-model="form.description"
+                rows="2"
+                required
+                class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm"
+                placeholder="Goal, scope, definition of done"
+              ></textarea>
+              <p v-if="errors.description" class="text-[11px] text-rose-600">{{ errors.description }}</p>
             </label>
             <label class="space-y-1">
-              <span class="text-xs uppercase text-muted-foreground">Status</span>
+              <span class="text-xs uppercase text-muted-foreground">Status <span class="text-rose-500">*</span></span>
               <select v-model="form.status" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm">
-                <option value="backlog">Backlog</option>
-                <option value="todo">Todo</option>
-                <option value="in_progress">In progress</option>
-                <option value="review">Review</option>
-                <option value="done">Done</option>
+                <option v-for="status in STATUS_OPTIONS" :key="status" :value="status">{{ status }}</option>
               </select>
+              <p v-if="errors.status" class="text-[11px] text-rose-600">{{ errors.status }}</p>
             </label>
             <label class="space-y-1">
               <span class="text-xs uppercase text-muted-foreground">Start</span>
@@ -57,6 +62,7 @@
             <label class="space-y-1">
               <span class="text-xs uppercase text-muted-foreground">Due</span>
               <input type="date" v-model="form.dueDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm" />
+              <p v-if="errors.dates" class="text-[11px] text-rose-600">{{ errors.dates }}</p>
             </label>
             <div class="md:col-span-2 flex justify-end gap-2">
               <button type="button" class="rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground" @click="resetForm">Clear</button>
@@ -182,6 +188,7 @@ import { useEpicsStore } from '@/stores/epics'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/utils/helpers'
 import ConfirmModal from '@/components/molecules/ConfirmModal.vue'
+import { TICKET_STATUSES, type TicketStatus } from '@/utils/constants'
 
 const router = useRouter()
 const projectsStore = useProjectsStore()
@@ -198,13 +205,21 @@ const loading = ref(false)
 const editingId = ref<string | null>(null)
 const confirmingId = ref<string | null>(null)
 const toast = reactive({ open: false, message: '', variant: 'success' as 'success' | 'error' })
-const form = reactive({
+const STATUS_OPTIONS: TicketStatus[] = [...TICKET_STATUSES]
+const form = reactive<{
+  title: string
+  description: string
+  status: TicketStatus
+  startDate: string
+  dueDate: string
+}>({
   title: '',
   description: '',
   status: 'backlog',
   startDate: '',
   dueDate: '',
 })
+const errors = reactive<{ title?: string; description?: string; status?: string; dates?: string }>({})
 
 const epicsByProject = computed(() => epicsStore.byProject(selectedProject.value))
 const currentProject = computed(() => projects.value.find((p) => p.id === selectedProject.value))
@@ -227,7 +242,7 @@ const startEdit = (epic: any) => {
   editingId.value = epic.id
   form.title = epic.title
   form.description = epic.description ?? ''
-  form.status = epic.status ?? 'backlog'
+  form.status = (epic.status as TicketStatus) ?? 'backlog'
   form.startDate = epic.startDate ? epic.startDate.slice(0, 10) : ''
   form.dueDate = epic.dueDate ? epic.dueDate.slice(0, 10) : ''
   errorMsg.value = ''
@@ -272,6 +287,35 @@ const resetForm = () => {
   form.dueDate = ''
   errorMsg.value = ''
   editingId.value = null
+  errors.title = undefined
+  errors.description = undefined
+  errors.status = undefined
+  errors.dates = undefined
+}
+
+const validateForm = () => {
+  errors.title = undefined
+  errors.description = undefined
+  errors.status = undefined
+  errors.dates = undefined
+
+  if (!form.title.trim()) {
+    errors.title = 'Title wajib diisi.'
+  }
+
+  if (!form.description.trim()) {
+    errors.description = 'Description wajib diisi.'
+  }
+
+  if (!STATUS_OPTIONS.includes(form.status)) {
+    errors.status = 'Status tidak valid.'
+  }
+
+  if (form.startDate && form.dueDate && new Date(form.startDate) > new Date(form.dueDate)) {
+    errors.dates = 'Start date harus lebih awal dari due date.'
+  }
+
+  return !errors.title && !errors.description && !errors.status && !errors.dates
 }
 
 const handleCreate = async () => {
@@ -279,8 +323,8 @@ const handleCreate = async () => {
     errorMsg.value = 'Select a project first.'
     return
   }
-  if (!form.title.trim()) {
-    errorMsg.value = 'Title is required.'
+  if (!validateForm()) {
+    errorMsg.value = errors.title || errors.status || errors.dates || 'Perbaiki input.'
     return
   }
   const startDateIso = form.startDate ? `${form.startDate}T00:00:00Z` : undefined

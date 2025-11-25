@@ -43,10 +43,12 @@
       <!-- USER DROPDOWN -->
       <div class="relative">
         <button
-          class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-1 text-sm text-slate-700 transition"
+          class="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 transition hover:border-slate-300"
           @click="toggleMenu"
         >
-          <img :src="avatar" alt="avatar" class="h-8 w-8 rounded-full object-cover" />
+          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold uppercase text-white shadow">
+            {{ initials }}
+          </div>
           <span>{{ currentUser?.name }}</span>
         </button>
 
@@ -81,8 +83,15 @@ const route = useRoute()
 const auth = useAuthStore()
 const { currentUser } = storeToRefs(auth)
 
-const fallbackAvatar = new URL('../assets/avatars/avatar-1.svg', import.meta.url).href
-const avatar = computed(() => currentUser.value?.avatar ?? fallbackAvatar)
+const initials = computed(() => {
+  const name = currentUser.value?.name ?? 'User'
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+})
 
 const toggleMenu = () => {
   showMenu.value = !showMenu.value

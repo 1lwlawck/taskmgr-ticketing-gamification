@@ -256,21 +256,25 @@
         <h2 class="text-xl font-semibold text-slate-900">{{ editing ? 'Edit ticket' : 'New ticket' }}</h2>
         <form class="mt-4 grid gap-4 sm:grid-cols-2" @submit.prevent="handleSubmit">
           <label class="space-y-1 sm:col-span-2">
-            <span class="text-xs uppercase text-slate-500">Title</span>
+            <span class="text-xs uppercase text-slate-500">Title <span class="text-rose-500">*</span></span>
             <input v-model="form.title" required class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm" />
+            <p v-if="formErrors.title" class="text-[11px] text-rose-600">{{ formErrors.title }}</p>
           </label>
         <label class="space-y-1 sm:col-span-2">
-          <span class="text-xs uppercase text-slate-500">Description</span>
-          <textarea v-model="form.description" rows="3" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm"></textarea>
+          <span class="text-xs uppercase text-slate-500">Description <span class="text-rose-500">*</span></span>
+          <textarea v-model="form.description" rows="3" required class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm"></textarea>
+          <p v-if="formErrors.description" class="text-[11px] text-rose-600">{{ formErrors.description }}</p>
         </label>
         <label class="space-y-1">
-          <span class="text-xs uppercase text-slate-500">Project</span>
+          <span class="text-xs uppercase text-slate-500">Project <span class="text-rose-500">*</span></span>
           <select v-model="form.projectId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
+            <option value="" disabled>Select project</option>
             <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
           </select>
+          <p v-if="formErrors.project" class="text-[11px] text-rose-600">{{ formErrors.project }}</p>
         </label>
         <label class="space-y-1">
-          <span class="text-xs uppercase text-slate-500">Priority</span>
+          <span class="text-xs uppercase text-slate-500">Priority <span class="text-rose-500">*</span></span>
           <select v-model="form.priority" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
             <option value="low">Low</option>
             <option value="medium">Medium</option>
@@ -279,7 +283,7 @@
             </select>
           </label>
           <label class="space-y-1">
-          <span class="text-xs uppercase text-slate-500">Type</span>
+          <span class="text-xs uppercase text-slate-500">Type <span class="text-rose-500">*</span></span>
           <select v-model="form.type" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
             <option value="bug">Bug</option>
             <option value="feature">Feature</option>
@@ -309,12 +313,6 @@
           <span class="text-xs uppercase text-slate-500">Due Date</span>
           <input type="date" v-model="form.dueDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm" />
         </label>
-          <label class="space-y-1">
-            <span class="text-xs uppercase text-slate-500">Project</span>
-            <select v-model="form.projectId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-              <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
-            </select>
-          </label>
           <div class="sm:col-span-2 flex justify-end gap-2">
             <Button type="button" variant="ghost" @click="closeModal">Cancel</Button>
             <Button type="submit">Save</Button>
@@ -342,6 +340,7 @@ import { storeToRefs } from 'pinia'
 import ConfirmModal from '@/components/molecules/ConfirmModal.vue'
 import AppCard from '@/components/molecules/AppCard.vue'
 import { Button } from '@/components/atoms/ui/button'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/atoms/ui/input'
 import { Search } from 'lucide-vue-next'
 import { useTicketsStore } from '@/stores/tickets'
@@ -407,6 +406,7 @@ const form = reactive<TicketFormState>({
   dueDate: '',
   projectId: defaultProjectId(),
 })
+const formErrors = reactive<{ title?: string; project?: string; description?: string }>({})
 
 watch(
   () => route.query.q,
@@ -633,6 +633,22 @@ const editTicket = (ticket: Ticket) => {
 }
 
 const handleSubmit = async () => {
+  formErrors.title = undefined
+  formErrors.project = undefined
+  formErrors.description = undefined
+  if (!form.title.trim()) {
+    formErrors.title = 'Title wajib diisi.'
+    return
+  }
+  if (!form.projectId) {
+    formErrors.project = 'Pilih project terlebih dahulu.'
+    return
+  }
+  if (!form.description.trim()) {
+    formErrors.description = 'Description wajib diisi.'
+    return
+  }
+
   const startDateIso = form.startDate ? `${form.startDate}T00:00:00Z` : undefined
   const dueDateIso = form.dueDate ? `${form.dueDate}T00:00:00Z` : undefined
 
@@ -681,6 +697,9 @@ const handleSubmit = async () => {
 
 const closeModal = () => {
   showModal.value = false
+  formErrors.title = undefined
+  formErrors.project = undefined
+  formErrors.description = undefined
 }
 
 const promptDelete = (ticket: Ticket) => {
@@ -724,6 +743,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-
-

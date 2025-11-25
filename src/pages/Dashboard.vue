@@ -3,19 +3,19 @@
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-24 top-6 h-56 w-56 rounded-full bg-white/10 blur-3xl"></div>
       <div class="pointer-events-none absolute -left-10 -bottom-12 h-48 w-48 rounded-full bg-indigo-500/30 blur-3xl"></div>
-      <div class="relative flex flex-col gap-8 p-8 lg:flex-row lg:items-center lg:justify-between">
+      <div class="relative flex flex-col gap-6 p-6 sm:gap-8 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
         <div class="space-y-6">
           <div class="space-y-2">
             <p class="text-xs uppercase tracking-[0.4em] text-white/60">Mission control</p>
-            <h1 class="text-3xl font-semibold">Stay sharp, {{ currentUser?.name ?? 'Operator' }}</h1>
+            <h1 class="text-2xl font-semibold sm:text-3xl">Stay sharp, {{ currentUser?.name ?? 'Operator' }}</h1>
             <p class="text-sm text-white/70">
               You're {{ xpProgress }}% toward level {{ (stats?.level ?? 1) + 1 }}. Keep pushing to secure the {{ levelBadge }} badge.
             </p>
           </div>
-          <div class="flex flex-wrap gap-6 text-sm">
+          <div class="flex flex-wrap gap-4 sm:gap-6 text-sm">
             <div class="min-w-[120px]">
-              <p class="text-xs uppercase text-white/60">Current level</p>
-              <p class="text-3xl font-semibold">{{ stats?.level ?? 1 }}</p>
+            <p class="text-xs uppercase text-white/60">Current level</p>
+            <p class="text-3xl font-semibold">{{ stats?.level ?? 1 }}</p>
             </div>
             <div class="min-w-[120px]">
               <p class="text-xs uppercase text-white/60">Badge</p>
@@ -26,14 +26,14 @@
               <p class="text-lg font-medium">{{ xpToNext }} XP to go</p>
             </div>
           </div>
-          <div class="flex flex-wrap gap-3">
+          <div class="flex flex-wrap gap-3 sm:flex-row">
             <RouterLink to="/tickets">
               <Button variant="secondary" size="sm" class="border border-white/20 bg-white/10 text-white hover:bg-white/20">
                 Review tickets
               </Button>
             </RouterLink>
             <RouterLink to="/projects">
-              <Button variant="ghost" size="sm" class="text-white hover:bg-white/10">
+              <Button variant="ghost" size="sm" class="text-white hover:bg-white/10 hover:text-white">
                 Jump to projects
               </Button>
             </RouterLink>
@@ -109,7 +109,7 @@
             <Button variant="ghost" size="sm">View all</Button>
           </RouterLink>
         </template>
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
           <TicketCard
             v-for="ticket in assignedTickets"
             :key="ticket.id"
@@ -146,7 +146,7 @@
 
     <div class="grid gap-6 lg:grid-cols-2">
       <AppCard title="Focus stack" description="Top priorities sorted by urgency">
-        <ul v-if="focusTickets.length" class="space-y-4">
+        <ul v-if="focusTickets.length" class="space-y-3 text-sm">
           <li
             v-for="ticket in focusTickets"
             :key="ticket.id"
@@ -194,7 +194,7 @@
         </RouterLink>
       </template>
       <div class="-mx-2 overflow-x-auto sm:mx-0">
-        <table class="min-w-full divide-y divide-slate-100 text-sm">
+        <table class="min-w-[720px] w-full divide-y divide-slate-100 text-sm">
           <thead class="text-left text-xs uppercase tracking-[0.3em] text-muted-foreground">
             <tr>
               <th class="px-2 py-3 font-medium">Ticket</th>

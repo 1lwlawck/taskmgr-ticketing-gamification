@@ -20,3 +20,16 @@ export const formatDate = (value: Date | string = new Date()): string => {
 
 export const randomFromList = <T>(items: T[]): T | undefined =>
   items[Math.floor(Math.random() * items.length)]
+
+export const formatDateTime = (value?: Date | string): string => {
+  if (!value) return '-'
+  const date = typeof value === 'string' ? new Date(value) : value
+  if (Number.isNaN(date.getTime())) return '-'
+  return date.toLocaleString('id-ID', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}

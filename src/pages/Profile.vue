@@ -5,7 +5,9 @@
       <div class="pointer-events-none absolute -left-16 bottom-0 h-60 w-60 rounded-full bg-indigo-500/30 blur-3xl"></div>
       <div class="relative flex flex-col gap-6 p-8 lg:flex-row lg:items-center lg:justify-between">
         <div class="flex items-center gap-6">
-          <img :src="currentUser.avatar" class="h-24 w-24 rounded-full border-4 border-white/30 object-cover shadow-lg" alt="avatar" />
+          <div class="flex h-24 w-24 items-center justify-center rounded-full bg-slate-900 text-3xl font-semibold uppercase text-white shadow-lg">
+            {{ initials }}
+          </div>
           <div class="space-y-2">
             <p class="text-xs uppercase tracking-[0.4em] text-white/70">Operator Profile</p>
             <h1 class="text-3xl font-semibold">{{ currentUser.name }}</h1>
@@ -170,6 +172,15 @@ watch(
 )
 
 const stats = computed(() => (currentUser.value ? gamification.userStats[currentUser.value.id] : null))
+const initials = computed(() => {
+  const name = currentUser.value?.name ?? 'User'
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+})
 
 const xpToNext = computed(() => Math.max(0, (stats.value?.nextLevelThreshold ?? 100) - (stats.value?.xp ?? 0)))
 const xpProgress = computed(() => {

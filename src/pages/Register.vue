@@ -37,15 +37,17 @@
           </div>
           <form class="mt-8 space-y-5" @submit.prevent="handleRegister">
             <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase text-muted-foreground">Name</label>
+              <label class="text-xs font-semibold uppercase text-muted-foreground">Name <span class="text-rose-500">*</span></label>
               <Input v-model="form.name" placeholder="Full name" required class="bg-transparent" />
+              <p v-if="errors.name" class="text-[11px] text-rose-600">{{ errors.name }}</p>
             </div>
             <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase text-muted-foreground">Username</label>
+              <label class="text-xs font-semibold uppercase text-muted-foreground">Username <span class="text-rose-500">*</span></label>
               <Input v-model="form.username" placeholder="Choose a username" required class="bg-transparent" />
+              <p v-if="errors.username" class="text-[11px] text-rose-600">{{ errors.username }}</p>
             </div>
             <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase text-muted-foreground">Password</label>
+              <label class="text-xs font-semibold uppercase text-muted-foreground">Password <span class="text-rose-500">*</span></label>
               <div class="relative">
                 <Input
                   v-model="form.password"
@@ -64,6 +66,7 @@
                   <span class="sr-only">{{ showPassword ? 'Hide password' : 'Show password' }}</span>
                 </button>
               </div>
+              <p v-if="errors.password" class="text-[11px] text-rose-600">{{ errors.password }}</p>
             </div>
             <p v-if="error" class="text-xs text-destructive text-right">{{ error }}</p>
             <Button type="submit" class="w-full" size="lg">Register</Button>
@@ -80,7 +83,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -93,14 +96,19 @@ const auth = useAuthStore()
 const form = reactive({ name: '', username: '', password: '' })
 const error = ref('')
 const showPassword = ref(false)
+const errors = reactive<{ name?: string; username?: string; password?: string }>({})
 
 const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
 
 const handleRegister = async () => {
+  errors.name = errors.username = errors.password = undefined
   if (!form.name || !form.username || !form.password) {
-    error.value = 'Please complete all fields'
+    if (!form.name) errors.name = 'Name wajib diisi.'
+    if (!form.username) errors.username = 'Username wajib diisi.'
+    if (!form.password) errors.password = 'Password wajib diisi.'
+    error.value = ''
     return
   }
   try {

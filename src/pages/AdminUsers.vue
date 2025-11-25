@@ -99,12 +99,14 @@
           </div>
           <span class="text-xs text-muted-foreground">{{ audit.length }} entries</span>
         </div>
-        <ul class="divide-y divide-border">
-          <li v-for="entry in audit" :key="entry.id" class="py-4 text-sm text-foreground">
-            <p class="text-base font-semibold text-foreground">{{ entry.action }}</p>
-            <p class="text-xs text-muted-foreground">{{ entry.description }} • {{ entry.timestamp }}</p>
-          </li>
-        </ul>
+        <div class="max-h-[450px] overflow-y-auto rounded-md border border-border/60">
+          <ul class="divide-y divide-border">
+            <li v-for="entry in audit" :key="entry.id" class="px-4 py-4 text-sm text-foreground">
+              <p class="text-base font-semibold text-foreground">{{ entry.action }}</p>
+              <p class="text-xs text-muted-foreground">{{ entry.description }} · {{ formatDateTime(entry.timestamp) }}</p>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   </section>
@@ -118,6 +120,7 @@ import { useAuditStore } from '@/stores/audit'
 import { useAuthStore } from '@/stores/auth'
 import { Input } from '@/components/atoms/ui/input'
 import { Button } from '@/components/atoms/ui/button'
+import { formatDateTime } from '@/utils/helpers'
 
 const usersStore = useUsersStore()
 const { users } = storeToRefs(usersStore)
@@ -148,4 +151,3 @@ const updateRole = async (userId, role) => {
   }
 }
 </script>
-

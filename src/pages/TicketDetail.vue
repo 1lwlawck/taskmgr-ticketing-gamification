@@ -12,7 +12,7 @@
             Status:
             <select
               :value="ticket.status"
-              class="rounded-full border border-white/30 bg-white/15 px-3 py-1 text-white"
+              class="rounded-md border border-white/30 bg-white/15 px-3 py-1 text-white"
               @change="updateStatus"
             >
               <option v-for="option in statusOptions" :key="option.value" :value="option.value" class="text-slate-900">
@@ -38,12 +38,12 @@
           <div class="rounded-lg bg-slate-50 p-3">
             <p class="text-xs uppercase text-slate-500">Assignee</p>
             <div class="mt-2 flex items-center gap-2">
-              <span class="inline-block h-8 w-8 rounded-full bg-slate-200"></span>
+              <span class="inline-block h-8 w-9 rounded-full bg-slate-200"></span>
               <div>
                 <p class="text-slate-900">{{ assigneeName || 'Unassigned' }}</p>
                 <select
                   :value="ticket.assigneeId || ''"
-                  class="mt-1 rounded-md border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700"
+                  class="mt-1 rounded-md border border-slate-200 bg-white px-5 py-1 text-sm text-slate-700"
                   @change="updateAssignee"
                 >
                   <option value="">Unassigned</option>

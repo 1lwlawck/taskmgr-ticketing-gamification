@@ -3,10 +3,10 @@
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-24 top-8 h-56 w-56 rounded-full bg-white/15 blur-3xl"></div>
       <div class="pointer-events-none absolute -left-16 bottom-0 h-60 w-60 rounded-full bg-indigo-500/30 blur-3xl"></div>
-      <div class="relative flex flex-col gap-6 p-8 lg:flex-row lg:items-center lg:justify-between">
-        <div class="space-y-4">
+      <div class="relative flex flex-col gap-4 p-6 sm:gap-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+        <div class="space-y-3 sm:space-y-4">
           <p class="text-xs uppercase tracking-[0.4em] text-white/70">Squad initiatives</p>
-          <h1 class="text-3xl font-semibold">Projects</h1>
+          <h1 class="text-2xl font-semibold sm:text-3xl">Projects</h1>
           <p class="text-sm text-white/80">
             {{ projects.length }} live programs / {{ totalTickets }} tracked tickets / {{ activeProjects }} active this week
           </p>
@@ -15,7 +15,7 @@
           <Button variant="secondary" class="border border-white/30 bg-white/15 text-white hover:bg-white/25" @click="showJoin = true">
             Join project
           </Button>
-          <Button class="bg-white text-slate-900 disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canCreateProject" @click="showModal = true">
+          <Button class="bg-white text-slate-900 disabled:cursor-not-allowed disabled:opacity-60 hover:bg-slate-200" :disabled="!canCreateProject" @click="showModal = true">
             Create project
           </Button>
         </div>
@@ -45,7 +45,7 @@
         </div>
         <p class="text-sm text-muted-foreground">Tap open to jump into the board.</p>
       </div>
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <ProjectCard v-for="project in projects" :key="project.id" :project="project" />
         <p v-if="projects.length === 0" class="text-sm text-muted-foreground">No projects yet. Create one to get started.</p>
       </div>
@@ -62,12 +62,13 @@
         </div>
         <form class="mt-6 space-y-4" @submit.prevent="handleCreate">
           <label class="block space-y-1">
-            <span class="text-xs uppercase text-muted-foreground">Name</span>
+            <span class="text-xs uppercase text-muted-foreground">Name <span class="text-rose-500">*</span></span>
             <Input
               v-model="form.name"
               required
               class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"
             />
+            <p v-if="formErrors.name" class="text-[11px] text-rose-600">{{ formErrors.name }}</p>
           </label>
           <label class="block space-y-1">
             <span class="text-xs uppercase text-muted-foreground">Description</span>
@@ -96,8 +97,9 @@
         </div>
         <form class="space-y-3 pt-4" @submit.prevent="handleJoin">
           <label class="block space-y-1">
-            <span class="text-xs uppercase text-muted-foreground">Invite code</span>
+            <span class="text-xs uppercase text-muted-foreground">Invite code <span class="text-rose-500">*</span></span>
             <Input v-model.trim="joinCode" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" />
+            <p v-if="formErrors.join" class="text-[11px] text-rose-600">{{ formErrors.join }}</p>
           </label>
           <div class="flex justify-end gap-2">
             <Button type="button" variant="ghost" size="sm" class="text-muted-foreground" @click="closeJoin">Cancel</Button>
@@ -133,6 +135,7 @@ const joinCode = ref('')
 const joinMessage = ref('')
 const successJoin = ref(false)
 const form = reactive({ name: '', description: '' })
+const formErrors = reactive<{ name?: string; join?: string }>({})
 const canCreateProject = computed(() =>
   ['admin', 'project_manager'].includes(auth.currentUser?.role ?? '')
 )
@@ -149,9 +152,14 @@ const activeProjects = computed(() => projects.value.filter((project) => isActiv
 const backlogProjects = computed(() => projects.value.filter((project) => !isActiveStatus(project.status)).length)
 
 const handleCreate = async () => {
+  formErrors.name = undefined
   if (!canCreateProject.value) {
     joinMessage.value = 'Only admins or project managers can create projects'
     successJoin.value = false
+    return
+  }
+  if (!form.name.trim()) {
+    formErrors.name = 'Project name wajib diisi.'
     return
   }
   try {
@@ -176,9 +184,11 @@ const resetModal = () => {
 }
 
 const handleJoin = async () => {
+  formErrors.join = undefined
   if (!joinCode.value) {
+    formErrors.join = 'Masukkan kode undangan.'
     successJoin.value = false
-    joinMessage.value = 'Enter a code first'
+    joinMessage.value = ''
     return
   }
   try {
@@ -201,6 +211,7 @@ const closeJoin = () => {
   showJoin.value = false
   joinMessage.value = ''
   joinCode.value = ''
+  formErrors.join = undefined
 }
 </script>
 

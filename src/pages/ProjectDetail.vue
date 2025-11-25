@@ -3,12 +3,12 @@
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-16 top-8 h-56 w-56 rounded-full bg-white/10 blur-3xl"></div>
       <div class="pointer-events-none absolute -left-20 bottom-0 h-48 w-48 rounded-full bg-indigo-500/30 blur-3xl"></div>
-      <div class="relative grid gap-8 p-8 lg:grid-cols-[1.2fr_0.8fr]">
+      <div class="relative grid gap-6 p-6 sm:gap-8 sm:p-8 xl:grid-cols-[1.2fr_0.8fr]">
         <div class="space-y-4">
           <p class="text-xs uppercase tracking-[0.4em] text-white/70">{{ projectStatusLabel }}</p>
           <div class="flex flex-wrap items-center gap-4">
             <div>
-              <h1 class="text-3xl font-semibold">{{ project.name }}</h1>
+              <h1 class="text-2xl font-semibold sm:text-3xl">{{ project.name }}</h1>
               <p class="text-sm text-white/70">{{ project.description }}</p>
             </div>
             <span class="rounded-full border border-white/30 px-3 py-1 text-xs uppercase">{{ boardHealth }}</span>
@@ -28,11 +28,11 @@
             </div>
           </div>
         </div>
-        <div class="grid gap-4 text-sm md:grid-cols-3">
+        <div class="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-3">
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
             <p class="text-xs uppercase text-white/60">Last activity</p>
             <p class="text-lg font-semibold">{{ lastActivity?.text ?? 'Belum ada aktivitas' }}</p>
-            <p class="text-xs text-white/70">{{ lastActivity?.timestamp ?? '-' }}</p>
+            <p class="text-xs text-white/70">{{ formatDateTime(lastActivity?.timestamp) }}</p>
           </div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
             <p class="text-xs uppercase text-white/60">Invites</p>
@@ -46,7 +46,7 @@
                 Invite
               </Button>
               <RouterLink to="/tickets">
-                <Button variant="ghost" size="sm" class="text-white hover:bg-white/10">Tiket</Button>
+                <Button variant="ghost" size="sm" class="text-white hover:bg-white/10 hover:text-white">Tiket</Button>
               </RouterLink>
               <Button
                 v-if="canLeaveProject"
@@ -63,7 +63,7 @@
       </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-[300px_1fr_280px]">
+    <div class="grid gap-6 lg:grid-cols-2 xl:grid-cols-[300px_1fr_320px]">
       <div class="space-y-4">
         <div class="rounded-3xl border border-border bg-card p-5">
           <div class="flex items-center justify-between">
@@ -128,6 +128,9 @@
               >
                 <p class="font-semibold text-foreground">{{ ticket.title }}</p>
                 <p class="text-xs text-muted-foreground capitalize">{{ ticket.priority }} / {{ ticket.type }}</p>
+                <p class="text-xs text-muted-foreground">
+                  Assignee: <span class="font-medium text-foreground">{{ assigneeLabel(ticket) }}</span>
+                </p>
                 <p v-if="ticket.epicTitle" class="mt-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 mr-2">
                   Epic: {{ ticket.epicTitle }}
                 </p>
@@ -142,13 +145,15 @@
       <div class="space-y-4">
         <div class="rounded-3xl border border-border bg-card p-5">
           <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Activity</p>
-          <ul class="mt-4 space-y-3">
-            <li v-for="item in project.activity" :key="item.id" class="rounded-2xl border border-muted bg-muted/40 p-3 text-sm">
-              <p class="font-semibold text-foreground">{{ item.text }}</p>
-              <p class="text-xs text-muted-foreground">{{ item.timestamp }}</p>
-            </li>
-            <li v-if="project.activity.length === 0" class="text-sm text-muted-foreground">Belum ada aktivitas.</li>
-          </ul>
+          <div class="mt-4 max-h-[340px] overflow-y-auto rounded-2xl border border-muted/60 bg-muted/20">
+            <ul class="divide-y divide-muted/60">
+              <li v-for="item in project.activity" :key="item.id" class="p-3 text-sm">
+                <p class="font-semibold text-foreground">{{ item.text }}</p>
+                <p class="text-xs text-muted-foreground">{{ formatDateTime(item.timestamp) }}</p>
+              </li>
+              <li v-if="project.activity.length === 0" class="p-3 text-sm text-muted-foreground">Belum ada aktivitas.</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -188,6 +193,7 @@ import { useTicketsStore } from '@/stores/tickets'
 import { useUsersStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
 import { useGamificationStore } from '@/stores/gamification'
+import { formatDateTime } from '@/utils/helpers'
 import { useEpicsStore } from '@/stores/epics'
 import { TICKET_STATUSES, type TicketStatus } from '@/utils/constants'
 import type { ProjectInvitePayload, ProjectMember, Ticket } from '@/types/models'
@@ -338,6 +344,7 @@ const resolveEpicTitle = (epicId: string) => {
   const epic = epicsStore.items.find((e) => e.id === epicId)
   return epic?.title
 }
+const assigneeLabel = (ticket: Ticket) => ticket.assigneeName || 'Unassigned'
 
 const confirmLeaveProject = () => {
   showLeaveConfirm.value = true

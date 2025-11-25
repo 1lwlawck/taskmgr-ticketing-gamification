@@ -33,7 +33,7 @@
             <RouterLink to="/dashboard">
               <Button variant="secondary" class="border border-white/30 bg-white/15 text-white hover:bg-white/25">Back to dashboard</Button>
             </RouterLink>
-            <Button variant="ghost" class="text-white hover:bg-white/10">Share board</Button>
+            <Button variant="ghost" class="text-white hover:bg-white/10 hover:text-white">Share board</Button>
           </div>
         </div>
         <div class="w-full max-w-sm rounded-2xl border border-white/15 bg-white/5 p-6 text-white shadow-lg backdrop-blur">
@@ -41,7 +41,7 @@
           <p class="text-2xl font-semibold">{{ topPerformer?.name ?? 'No entries yet' }}</p>
           <p class="text-sm text-white/70">
             {{ topPerformer ? formatRole(topPerformer.role) : 'Pending' }} /
-            {{ formatNumber(topPerformer?.tickets_closed_count ?? 0) }} tickets closed
+            {{ formatNumber(topPerformer?.ticketsClosedCount ?? topPerformer?.tickets_closed_count ?? 0) }} tickets closed
           </p>
           <div class="mt-6 space-y-2">
             <div>
@@ -92,7 +92,7 @@
           <p class="text-sm text-muted-foreground">{{ user ? formatRole(user.role) : 'Awaiting data' }}</p>
           <p class="mt-4 text-3xl font-bold text-foreground">{{ formatNumber(user?.xp ?? 0) }} XP</p>
           <p class="text-xs text-muted-foreground">
-            Level {{ user?.level ?? 1 }} / {{ formatNumber(user?.tickets_closed_count ?? 0) }} tickets
+            Level {{ user?.level ?? 1 }} / {{ formatNumber(user?.ticketsClosedCount ?? user?.tickets_closed_count ?? 0) }} tickets
           </p>
         </div>
       </div>
@@ -122,7 +122,7 @@
               <td class="px-4 py-3 font-semibold">#{{ user.rank }}</td>
               <td class="px-4 py-3">
                 <p class="font-semibold text-foreground">{{ user.name }}</p>
-                <p class="text-xs text-muted-foreground">{{ user.bio ?? '—' }}</p>
+                <p class="text-xs text-muted-foreground">{{ user.bio ?? 'ï¿½' }}</p>
               </td>
               <td class="px-4 py-3 capitalize text-foreground">{{ formatRole(user.role) }}</td>
               <td class="px-4 py-3 text-foreground">{{ user.level }}</td>
@@ -194,7 +194,7 @@ const topPerformer = computed(() => topThree.value[0] ?? null)
 const contendersCount = computed(() => ranking.value.length)
 const totalXp = computed(() => ranking.value.reduce((sum, user) => sum + (user.xp ?? 0), 0))
 const totalTickets = computed(() =>
-  ranking.value.reduce((sum, user) => sum + (user.tickets_closed_count ?? 0), 0)
+  ranking.value.reduce((sum, user) => sum + (user.ticketsClosedCount ?? user.tickets_closed_count ?? 0), 0)
 )
 const averageLevel = computed(() => {
   if (!ranking.value.length) return 0

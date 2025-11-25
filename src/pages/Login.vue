@@ -37,11 +37,12 @@
           </div>
           <form class="mt-8 space-y-5" @submit.prevent="handleLogin">
             <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase text-muted-foreground">Username</label>
+              <label class="text-xs font-semibold uppercase text-muted-foreground">Username <span class="text-rose-500">*</span></label>
               <Input v-model="form.username" placeholder="Enter username" required class="bg-transparent" />
+              <p v-if="errors.username" class="text-[11px] text-rose-600">{{ errors.username }}</p>
             </div>
             <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase text-muted-foreground">Password</label>
+              <label class="text-xs font-semibold uppercase text-muted-foreground">Password <span class="text-rose-500">*</span></label>
               <div class="relative">
                 <Input
                   v-model="form.password"
@@ -59,6 +60,7 @@
                   <span class="sr-only">{{ showPassword ? 'Hide password' : 'Show password' }}</span>
                 </button>
               </div>
+              <p v-if="errors.password" class="text-[11px] text-rose-600">{{ errors.password }}</p>
             </div>
             <p v-if="error" class="text-xs text-destructive text-right">{{ error }}</p>
             <Button type="submit" class="w-full" size="lg">Sign in</Button>
@@ -75,7 +77,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -88,12 +90,23 @@ const auth = useAuthStore()
 const form = reactive({ username: '', password: '' })
 const error = ref('')
 const showPassword = ref(false)
+const errors = reactive<{ username?: string; password?: string }>({})
 
 const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
 
 const handleLogin = async () => {
+  errors.username = undefined
+  errors.password = undefined
+  if (!form.username.trim()) {
+    errors.username = 'Username wajib diisi.'
+    return
+  }
+  if (!form.password) {
+    errors.password = 'Password wajib diisi.'
+    return
+  }
   try {
     error.value = ''
     await auth.login(form)

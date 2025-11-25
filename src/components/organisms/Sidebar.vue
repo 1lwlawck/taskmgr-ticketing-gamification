@@ -236,7 +236,7 @@ interface NavItem {
 
 const nav: NavItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: 'dashboard' },
-  { label: 'Epics', to: '/epics', icon: 'epics' },
+  { label: 'Epics', to: '/epics', icon: 'epics' },  
   { label: 'Tickets', to: '/tickets', icon: 'tickets' },
   
   { label: 'Leaderboard', to: '/leaderboard', icon: 'leaderboard' },
