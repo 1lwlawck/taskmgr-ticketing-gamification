@@ -70,7 +70,7 @@ export const useTicketsStore = defineStore('tickets', {
       await Promise.allSettled([
         gamification.fetchStats(auth.currentUser.id),
         gamification.fetchEvents({ userId: auth.currentUser.id }),
-        gamification.fetchLeaderboard(10),
+        gamification.fetchLeaderboard({ limit: 10 }),
       ])
     },
     async fetchTickets(force = false) {
