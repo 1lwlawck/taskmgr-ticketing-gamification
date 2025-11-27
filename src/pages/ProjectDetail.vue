@@ -107,8 +107,17 @@
             <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Board</p>
             <h2 class="text-xl font-semibold text-foreground">Ticket pipeline</h2>
           </div>
-          <p class="text-xs text-muted-foreground">{{ totalTickets }} tickets · {{ openTickets }} open</p>
+          <div class="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <p>{{ totalTickets }} tickets · {{ openTickets }} open</p>
+            <input
+              v-model="searchTerm"
+              placeholder="Search tickets"
+              class="h-9 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+              @input="refreshTickets"
+            />
+          </div>
         </div>
+
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div
             v-for="status in statuses"
@@ -131,7 +140,7 @@
                 <p class="text-xs text-muted-foreground">
                   Assignee: <span class="font-medium text-foreground">{{ assigneeLabel(ticket) }}</span>
                 </p>
-                <p v-if="ticket.epicTitle" class="mt-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 mr-2">
+                <p v-if="ticket.epicTitle" class="mt-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
                   Epic: {{ ticket.epicTitle }}
                 </p>
                 <button class="mt-2 text-xs text-primary underline" @click="openTicket(ticket.id)">Open ticket</button>
@@ -139,6 +148,12 @@
               <p v-if="ticketsByStatus(status.value).length === 0" class="text-xs text-muted-foreground">Belum ada tiket.</p>
             </div>
           </div>
+        </div>
+
+        <div class="flex justify-center">
+          <Button v-if="ticketsNextCursor" :disabled="ticketsLoadingMore" variant="outline" size="sm" @click="loadMoreTickets">
+            {{ ticketsLoadingMore ? 'Loading...' : 'Load more tickets' }}
+          </Button>
         </div>
       </div>
 
@@ -153,6 +168,17 @@
               </li>
               <li v-if="project.activity.length === 0" class="p-3 text-sm text-muted-foreground">Belum ada aktivitas.</li>
             </ul>
+            <div class="p-3 text-center">
+              <Button
+                v-if="activityNextCursor"
+                :disabled="loadingActivity"
+                variant="outline"
+                size="sm"
+                @click="loadMoreActivity"
+              >
+                {{ loadingActivity ? 'Loading...' : 'Load more activity' }}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -186,6 +212,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import Sortable, { SortableEvent } from 'sortablejs'
+import { storeToRefs } from 'pinia'
 import InviteModal from '@/components/molecules/InviteModal.vue'
 import { Button } from '@/components/atoms/ui/button'
 import { useProjectsStore } from '@/stores/projects'
@@ -207,14 +234,17 @@ const ticketsStore = useTicketsStore()
 const usersStore = useUsersStore()
 const gamificationStore = useGamificationStore()
 const epicsStore = useEpicsStore()
+const { nextCursor: ticketsNextCursor, loadingMore: ticketsLoadingMore } = storeToRefs(ticketsStore)
 const showInvite = ref(false)
 const showLeaveConfirm = ref(false)
+const loadingActivity = ref(false)
 const columnRefs = reactive<Record<string, HTMLElement | null>>({})
 const sortables: Sortable[] = []
 const auth = useAuthStore()
 
 const projectId = computed(() => route.params.id as string)
 const project = computed(() => projectsStore.getById(projectId.value))
+const searchTerm = ref('')
 const isMember = computed(() => {
   if (!auth.currentUser || !project.value) return false
   return project.value.members.some((member) => member.id === auth.currentUser?.id)
@@ -237,6 +267,16 @@ const ticketsByStatus = (status: TicketStatus) => {
       ...ticket,
       epicTitle: ticket.epicId ? resolveEpicTitle(ticket.epicId) : undefined,
     }))
+    .filter((ticket) => {
+      const q = searchTerm.value.trim().toLowerCase()
+      if (!q) return true
+      return (
+        ticket.title.toLowerCase().includes(q) ||
+        (ticket.description ?? '').toLowerCase().includes(q) ||
+        (ticket.assigneeName ?? '').toLowerCase().includes(q) ||
+        (ticket.epicTitle ?? '').toLowerCase().includes(q)
+      )
+    })
 }
 
 const setColumnRef = (status: TicketStatus) => (el: HTMLElement | null) => {
@@ -289,6 +329,12 @@ const loadProject = async () => {
   if (!projectId.value) return
   try {
     await projectsStore.fetchProject(projectId.value)
+    await ticketsStore.fetchTicketsWithFilters({
+      projectId: projectId.value,
+      q: searchTerm.value,
+      force: true,
+    })
+    await epicsStore.fetchByProject(projectId.value)
   } catch (error) {
     console.error('Failed to load project', error)
   }
@@ -310,6 +356,24 @@ watch(
 
 onBeforeUnmount(() => destroySortable())
 
+const refreshTickets = async () => {
+  await ticketsStore.fetchTicketsWithFilters({
+    projectId: projectId.value,
+    q: searchTerm.value,
+    force: true,
+  })
+}
+
+const loadMoreTickets = async () => {
+  if (!ticketsNextCursor.value) return
+  await ticketsStore.fetchTicketsWithFilters({
+    projectId: projectId.value,
+    q: searchTerm.value,
+    append: true,
+    force: true,
+  })
+}
+
 const generateInvite = async ({ maxUses, expiryDays }: ProjectInvitePayload) => {
   if (!project.value) return
   const invite = await projectsStore.generateInvite(project.value.id, { maxUses, expiryDays })
@@ -322,15 +386,12 @@ const latestInvite = ref('')
 const resolveUser = (id: string) => usersStore.getById(id)
 
 const memberCount = computed(() => project.value?.members?.length ?? 0)
-const totalTickets = computed(() =>
-  statuses.reduce((sum, status) => sum + ticketsByStatus(status.value).length, 0)
-)
+const totalTickets = computed(() => statuses.reduce((sum, status) => sum + ticketsByStatus(status.value).length, 0))
 const openTickets = computed(() =>
-  statuses
-    .filter((status) => status.value !== 'done')
-    .reduce((sum, status) => sum + ticketsByStatus(status.value).length, 0)
+  statuses.filter((status) => status.value !== 'done').reduce((sum, status) => sum + ticketsByStatus(status.value).length, 0)
 )
 const lastActivity = computed(() => project.value?.activity?.[0] ?? null)
+const activityNextCursor = computed(() => project.value?.activityNextCursor ?? null)
 const projectStatusLabel = computed(() => project.value?.status ?? 'Active')
 const boardHealth = computed(() => {
   if (!totalTickets.value) return 'No tickets'
@@ -369,6 +430,20 @@ const leaveProject = async () => {
       title: 'Failed to leave project',
       message: error instanceof Error ? error.message : 'Please try again later',
     })
+  }
+}
+
+const loadMoreActivity = async () => {
+  if (!project.value || !activityNextCursor.value) return
+  loadingActivity.value = true
+  try {
+    await projectsStore.fetchProjectActivity(project.value.id, {
+      cursor: activityNextCursor.value,
+    })
+  } catch (error) {
+    console.error('Failed to load more activity', error)
+  } finally {
+    loadingActivity.value = false
   }
 }
 </script>

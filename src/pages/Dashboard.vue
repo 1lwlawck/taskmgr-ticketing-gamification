@@ -144,6 +144,33 @@
       </AppCard>
     </div>
 
+    <AppCard title="Recent XP events" description="Catatan XP terbaru milikmu.">
+      <ul v-if="xpEvents.length" class="divide-y divide-border text-sm">
+        <li v-for="event in xpEvents" :key="event.id" class="flex items-center justify-between py-3">
+          <div class="space-y-1">
+            <p class="font-semibold text-foreground">
+              +{{ event.xp ?? 0 }} XP
+              <span v-if="event.priority" class="text-xs uppercase text-muted-foreground">/ {{ event.priority }}</span>
+            </p>
+            <p class="text-xs text-muted-foreground">{{ event.note || 'XP update' }}</p>
+          </div>
+          <span class="text-xs text-muted-foreground">{{ formatDate(event.timestamp ?? event.createdAt) }}</span>
+        </li>
+      </ul>
+      <p v-else class="text-sm text-muted-foreground">Belum ada catatan XP.</p>
+      <div class="mt-4 flex justify-end">
+        <Button
+          v-if="eventsNextCursor"
+          variant="outline"
+          size="sm"
+          :disabled="eventsLoadingMore"
+          @click="loadMoreEvents"
+        >
+          {{ eventsLoadingMore ? 'Loading...' : 'Load more' }}
+        </Button>
+      </div>
+    </AppCard>
+
     <div class="grid gap-6 lg:grid-cols-2">
       <AppCard title="Focus stack" description="Top priorities sorted by urgency">
         <ul v-if="focusTickets.length" class="space-y-3 text-sm">
@@ -278,7 +305,8 @@ const auth = useAuthStore()
 const { currentUser } = storeToRefs(auth)
 
 const gamification = useGamificationStore()
-const { userStats } = storeToRefs(gamification)
+const { userStats, xpEvents, eventsNextCursor } = storeToRefs(gamification)
+const eventsLoadingMore = ref(false)
 const ticketsStore = useTicketsStore()
 
 const stats = computed(() => {
@@ -302,6 +330,16 @@ const xpProgress = computed(() => {
   const xp = stats.value?.xp ?? 0
   return Math.min(100, Math.round((xp / threshold) * 100))
 })
+
+const loadMoreEvents = async () => {
+  if (!eventsNextCursor.value) return
+  eventsLoadingMore.value = true
+  try {
+    await gamification.fetchEvents({ userId: auth.currentUser?.id, append: true })
+  } finally {
+    eventsLoadingMore.value = false
+  }
+}
 
 const closedTickets = computed(() =>
   ticketsStore.tickets.filter(
@@ -463,4 +501,3 @@ const badges = computed(() => [
 
 const openTicket = (ticketId) => router.push(`/tickets/${ticketId}`)
 </script>
-

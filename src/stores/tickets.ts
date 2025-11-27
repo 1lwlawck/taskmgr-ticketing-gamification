@@ -41,6 +41,15 @@ export const useTicketsStore = defineStore('tickets', {
   state: () => ({
     tickets: [] as Ticket[],
     loading: false,
+    loadingMore: false,
+    nextCursor: null as string | null,
+    currentQuery: {
+      projectId: '',
+      assigneeId: '',
+      status: '',
+      epicId: '',
+      q: '',
+    },
   }),
   getters: {
     getById: (state) => (id: string) => state.tickets.find((ticket) => ticket.id === id),
@@ -60,21 +69,71 @@ export const useTicketsStore = defineStore('tickets', {
       if (!auth.currentUser) return
       await Promise.allSettled([
         gamification.fetchStats(auth.currentUser.id),
-        gamification.fetchEvents(auth.currentUser.id),
+        gamification.fetchEvents({ userId: auth.currentUser.id }),
         gamification.fetchLeaderboard(10),
       ])
     },
     async fetchTickets(force = false) {
-      if (!force && this.tickets.length) return
-      this.loading = true
+      return this.fetchTicketsWithFilters({ force })
+    },
+    async fetchTicketsWithFilters(options?: {
+      force?: boolean
+      append?: boolean
+      projectId?: string
+      assigneeId?: string
+      status?: string
+      epicId?: string
+      q?: string
+    }) {
+      const { force = false, append = false } = options || {}
+      const isReset = !append
+      if (!force && !isReset && !this.nextCursor) return
+      if (isReset) {
+        this.nextCursor = null
+        this.tickets = []
+      }
+      const isFirstLoad = isReset && !append
+      this.loading = isFirstLoad
+      this.loadingMore = append
+
+      const query = {
+        projectId: options?.projectId ?? this.currentQuery.projectId,
+        assigneeId: options?.assigneeId ?? this.currentQuery.assigneeId,
+        status: options?.status ?? this.currentQuery.status,
+        epicId: options?.epicId ?? this.currentQuery.epicId,
+        q: options?.q ?? this.currentQuery.q,
+      }
+      this.currentQuery = query
+
+      const params: Record<string, any> = { limit: 50 }
+      if (query.projectId) params.projectId = query.projectId
+      if (query.assigneeId) params.assigneeId = query.assigneeId
+      if (query.status) params.status = query.status
+      if (query.epicId) params.epicId = query.epicId
+      if (query.q) params.q = query.q
+      if (append && this.nextCursor) params.cursor = this.nextCursor
+
       try {
-        const { data } = await api.get('/tickets')
-        this.tickets = (data?.data ?? []).map(normalizeTicket)
+        const { data } = await api.get('/tickets', { params })
+        const body = data as any
+        const list = (body?.data ?? body) as any[]
+        const normalized = list.map(normalizeTicket)
+        if (append) {
+          const existing = new Set(this.tickets.map((t) => t.id))
+          normalized.forEach((t) => {
+            if (!existing.has(t.id)) this.tickets.push(t)
+          })
+        } else {
+          this.tickets = normalized
+        }
+        this.nextCursor = body?.nextCursor ?? null
         useProjectsStore().syncBoardsWithTickets(this.tickets)
+        return this.tickets
       } catch (error) {
         throw handleApiError(error)
       } finally {
         this.loading = false
+        this.loadingMore = false
       }
     },
     async fetchTicketsByEpic(epicId: string) {
@@ -260,6 +319,9 @@ export const useTicketsStore = defineStore('tickets', {
     reset() {
       this.tickets = []
       this.loading = false
+      this.loadingMore = false
+      this.nextCursor = null
+      this.currentQuery = { projectId: '', assigneeId: '', status: '', epicId: '', q: '' }
     },
   },
 })

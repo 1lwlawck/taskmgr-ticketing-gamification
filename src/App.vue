@@ -34,7 +34,7 @@ const loadWorkspace = async () => {
     projects.syncBoardsWithTickets(tickets.tickets)
     await Promise.all([
       gamification.fetchStats(auth.currentUser.id),
-      gamification.fetchEvents(auth.currentUser.id),
+      gamification.fetchEvents({ userId: auth.currentUser.id }),
     ])
   } catch (error) {
     console.error('Failed to load workspace data', error)

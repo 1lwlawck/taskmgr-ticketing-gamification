@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="space-y-8">
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-20 top-8 h-48 w-48 rounded-full bg-white/10 blur-3xl"></div>
@@ -23,10 +23,6 @@
             </div>
           </div>
         </div>
-        <!-- <div class="flex flex-wrap gap-3">
-          <Button variant="secondary" class="border border-white/30 bg-white/15 text-white hover:bg-white/25">Invite user</Button>
-          <Button variant="ghost" class="text-white hover:bg-white/10">Roles</Button>
-        </div> -->
       </div>
     </div>
 
@@ -69,14 +65,14 @@
               <tr v-for="user in visibleUsers" :key="user.id">
                 <td class="px-4 py-4">
                   <p class="text-base font-semibold text-foreground">{{ user.name }}</p>
-                  <p class="text-xs text-muted-foreground">{{ user.username }}</p>
+                  <p class="text-xs text-muted-foreground">@{{ user.username }}</p>
                 </td>
                 <td class="px-4 py-4">
                   <select
                     :disabled="!isAdmin"
                     v-model="user.role"
                     class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-                    @change="(event) => updateRole(user.id, event.target.value)"
+                    @change="(event) => onRoleChange(user.id, event)"
                   >
                     <option value="admin">Admin</option>
                     <option value="project_manager">Project Manager</option>
@@ -97,13 +93,24 @@
             <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Audit log</p>
             <h2 class="text-lg font-semibold text-foreground">Aktivitas</h2>
           </div>
-          <span class="text-xs text-muted-foreground">{{ audit.length }} entries</span>
+          <div class="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{{ audit.length }} entries</span>
+            <Button
+              v-if="nextCursor"
+              size="xs"
+              variant="outline"
+              class="h-7 px-2"
+              @click="loadMoreAudit"
+            >
+              Load more
+            </Button>
+          </div>
         </div>
         <div class="max-h-[450px] overflow-y-auto rounded-md border border-border/60">
           <ul class="divide-y divide-border">
             <li v-for="entry in audit" :key="entry.id" class="px-4 py-4 text-sm text-foreground">
               <p class="text-base font-semibold text-foreground">{{ entry.action }}</p>
-              <p class="text-xs text-muted-foreground">{{ entry.description }} · {{ formatDateTime(entry.timestamp) }}</p>
+              <p class="text-xs text-muted-foreground">{{ entry.description }} - {{ formatDateTime(entry.timestamp) }}</p>
             </li>
           </ul>
         </div>
@@ -112,7 +119,7 @@
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useUsersStore } from '@/stores/users'
@@ -121,11 +128,12 @@ import { useAuthStore } from '@/stores/auth'
 import { Input } from '@/components/atoms/ui/input'
 import { Button } from '@/components/atoms/ui/button'
 import { formatDateTime } from '@/utils/helpers'
+import type { Role } from '@/utils/constants'
 
 const usersStore = useUsersStore()
 const { users } = storeToRefs(usersStore)
 const auditStore = useAuditStore()
-const { entries } = storeToRefs(auditStore)
+const { entries, nextCursor } = storeToRefs(auditStore)
 const audit = entries
 const auth = useAuthStore()
 const isAdmin = computed(() => auth.currentUser?.role === 'admin')
@@ -142,7 +150,13 @@ const visibleUsers = computed(() => {
 
 const adminCount = computed(() => users.value.filter((user) => user.role === 'admin').length)
 
-const updateRole = async (userId, role) => {
+const onRoleChange = async (userId: string, event: Event) => {
+  const target = event.target as HTMLSelectElement | null
+  const role = (target?.value ?? '') as Role
+  await updateRole(userId, role)
+}
+
+const updateRole = async (userId: string, role: Role) => {
   if (!isAdmin.value) return
   try {
     await usersStore.updateUserRole(userId, role)
@@ -150,4 +164,20 @@ const updateRole = async (userId, role) => {
     console.error(error)
   }
 }
+
+const loadMoreAudit = async () => {
+  if (!nextCursor.value) return
+  await auditStore.fetchEntries({ append: true })
+}
 </script>
+
+
+
+
+
+
+
+
+
+
+

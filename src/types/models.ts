@@ -40,6 +40,7 @@ export interface Project {
   members: ProjectMember[]
   invites: ProjectInvite[]
   activity: ProjectActivity[]
+  activityNextCursor?: string | null
   board: Record<string, string[]>
 }
 
@@ -145,6 +146,7 @@ export interface Epic {
 }
 
 export interface XpEvent {
+  createdAt: string
   id: string
   userId: string
   ticketId: string

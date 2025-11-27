@@ -45,9 +45,33 @@
         </div>
         <p class="text-sm text-muted-foreground">Tap open to jump into the board.</p>
       </div>
+      <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
+        <div class="flex flex-1 min-w-[240px] items-center gap-2">
+          <Input
+            v-model.trim="searchTerm"
+            placeholder="Search projects"
+            class="h-10 w-full rounded-2xl border-border bg-white"
+            @keyup.enter="handleSearch"
+          />
+          <select v-model="statusFilter" class="h-10 rounded-2xl border border-border bg-white px-3 text-sm text-foreground">
+            <option value="">All status</option>
+            <option value="Active">Active</option>
+            <option value="Archived">Archived</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <Button variant="secondary" size="sm" @click="handleSearch">Apply</Button>
+          <Button variant="ghost" size="sm" @click="() => { searchTerm = ''; statusFilter = ''; handleSearch() }">Reset</Button>
+        </div>
+      </div>
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <ProjectCard v-for="project in projects" :key="project.id" :project="project" />
-        <p v-if="projects.length === 0" class="text-sm text-muted-foreground">No projects yet. Create one to get started.</p>
+        <p v-if="projects.length === 0 && !loading" class="text-sm text-muted-foreground">No projects yet. Create one to get started.</p>
+      </div>
+      <div class="flex justify-center">
+        <Button v-if="nextCursor" :disabled="loadingMore" variant="outline" size="sm" @click="handleLoadMore">
+          {{ loadingMore ? 'Loading...' : 'Load more' }}
+        </Button>
       </div>
     </div>
 
@@ -114,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import AppCard from '@/components/molecules/AppCard.vue'
 import ProjectCard from '@/components/molecules/ProjectCard.vue'
@@ -128,7 +152,7 @@ import type { Project } from '@/types/models'
 const projectsStore = useProjectsStore()
 const auth = useAuthStore()
 const gamification = useGamificationStore()
-const { projects } = storeToRefs(projectsStore)
+const { projects, loading, loadingMore, nextCursor } = storeToRefs(projectsStore)
 const showModal = ref(false)
 const showJoin = ref(false)
 const joinCode = ref('')
@@ -136,6 +160,8 @@ const joinMessage = ref('')
 const successJoin = ref(false)
 const form = reactive({ name: '', description: '' })
 const formErrors = reactive<{ name?: string; join?: string }>({})
+const searchTerm = ref('')
+const statusFilter = ref('')
 const canCreateProject = computed(() =>
   ['admin', 'project_manager'].includes(auth.currentUser?.role ?? '')
 )
@@ -150,6 +176,28 @@ const totalTickets = computed(() => projects.value.reduce((sum, project) => sum 
 const isActiveStatus = (status?: string) => (status ?? '').toLowerCase() === 'active'
 const activeProjects = computed(() => projects.value.filter((project) => isActiveStatus(project.status)).length)
 const backlogProjects = computed(() => projects.value.filter((project) => !isActiveStatus(project.status)).length)
+
+const loadProjects = async (reset = true) => {
+  await projectsStore.fetchProjects({
+    q: searchTerm.value.trim(),
+    status: statusFilter.value,
+    append: !reset,
+    force: reset, // ensure reload when changing filter
+  })
+}
+
+const handleSearch = async () => {
+  await loadProjects(true)
+}
+
+const handleLoadMore = async () => {
+  await projectsStore.fetchProjects({
+    q: searchTerm.value.trim(),
+    status: statusFilter.value,
+    append: true,
+    force: true,
+  })
+}
 
 const handleCreate = async () => {
   formErrors.name = undefined
@@ -176,6 +224,10 @@ const handleCreate = async () => {
     console.error(error)
   }
 }
+
+onMounted(() => {
+  loadProjects(true)
+})
 
 const resetModal = () => {
   form.name = ''
@@ -214,5 +266,3 @@ const closeJoin = () => {
   formErrors.join = undefined
 }
 </script>
-
-

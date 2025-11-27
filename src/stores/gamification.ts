@@ -23,10 +23,12 @@ export const useGamificationStore = defineStore('gamification', {
   state: () => ({
     userStats: {} as Record<string, GamificationStats>,
     xpEvents: [] as XpEvent[],
+    eventsNextCursor: null as string | null,
     toasts: [] as Toast[],
     loading: false,
     leaderboard: [] as LeaderboardEntry[],
     leaderboardLoading: false,
+    leaderboardNextCursor: null as number | null,
   }),
   actions: {
     async fetchStats(userId: string) {
@@ -43,20 +45,51 @@ export const useGamificationStore = defineStore('gamification', {
         this.loading = false
       }
     },
-    async fetchEvents(userId?: string) {
+    async fetchEvents(options?: { userId?: string; cursor?: string; limit?: number; append?: boolean }) {
+      const { userId, cursor, limit = 50, append = false } = options || {}
+      if (append && !this.eventsNextCursor) return
+      const params: Record<string, any> = { limit }
+      if (userId) params.userId = userId
+      if (append && this.eventsNextCursor) params.cursor = this.eventsNextCursor
       try {
-        const { data } = await api.get('/gamification/events', { params: { userId } })
-        this.xpEvents = (data as any)?.data ?? []
+        const { data } = await api.get('/gamification/events', { params })
+        const body = (data as any)?.data ?? data
+        const nextCursor = (data as any)?.nextCursor ?? null
+        if (append) {
+          const existing = new Set(this.xpEvents.map((e) => e.id))
+          ;(body as XpEvent[]).forEach((e) => {
+            if (!existing.has(e.id)) this.xpEvents.push(e)
+          })
+        } else {
+          this.xpEvents = body as XpEvent[]
+        }
+        this.eventsNextCursor = nextCursor
       } catch (error) {
         throw handleApiError(error)
       }
     },
-    async fetchLeaderboard(limit = 50) {
-      this.leaderboardLoading = true
+    async fetchLeaderboard(options?: { limit?: number; cursor?: number; append?: boolean }) {
+      const { limit = 50, cursor, append = false } = options || {}
+      const params: Record<string, any> = { limit }
+      if (append && this.leaderboardNextCursor != null) {
+        params.cursor = this.leaderboardNextCursor
+      } else if (cursor != null) {
+        params.cursor = cursor
+      }
+      this.leaderboardLoading = !append
       try {
-        const { data } = await api.get('/gamification/leaderboard', { params: { limit } })
+        const { data } = await api.get('/gamification/leaderboard', { params })
         const rows = Array.isArray((data as any)?.data) ? (data as any).data : data
-        this.leaderboard = (rows ?? []) as LeaderboardEntry[]
+        const next = (data as any)?.nextCursor ?? null
+        if (append) {
+          const existing = new Set(this.leaderboard.map((l) => l.id))
+          ;(rows ?? []).forEach((row: LeaderboardEntry) => {
+            if (!existing.has(row.id)) this.leaderboard.push(row)
+          })
+        } else {
+          this.leaderboard = (rows ?? []) as LeaderboardEntry[]
+        }
+        this.leaderboardNextCursor = next
         return this.leaderboard
       } catch (error) {
         throw handleApiError(error)
@@ -111,10 +144,12 @@ export const useGamificationStore = defineStore('gamification', {
     reset() {
       this.userStats = {}
       this.xpEvents = []
+      this.eventsNextCursor = null
       this.toasts = []
       this.loading = false
       this.leaderboard = []
       this.leaderboardLoading = false
+      this.leaderboardNextCursor = null
     },
   },
 })

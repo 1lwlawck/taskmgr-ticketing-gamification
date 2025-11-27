@@ -71,7 +71,12 @@
       <div class="flex flex-wrap items-center gap-3">
         <div class="relative">
           <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input v-model="query" placeholder="Search title, assignee, project" class="w-64 bg-transparent pl-9" />
+          <Input
+            v-model="searchTerm"
+            placeholder="Search title, assignee, project"
+            class="w-64 bg-transparent pl-9"
+            @input="runSearch"
+          />
         </div>
         <Button size="sm" class="bg-slate-900 text-white" @click="openCreate">New ticket</Button>
       </div>
@@ -91,13 +96,19 @@
           </span>
         </button>
         <div class="ml-auto flex flex-wrap items-center gap-2">
+          <span class="text-xs uppercase text-muted-foreground">Assignee</span>
+          <select v-model="assigneeFilter" class="rounded-md border px-3 py-1 text-xs font-medium" @change="runSearch">
+            <option value="all">All</option>
+            <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
+          </select>
           <span class="text-xs uppercase text-muted-foreground">Epic</span>
-          <select v-model="epicFilter" class="rounded-md border px-3 py-1 text-xs font-medium">
+          <select v-model="epicFilter" class="rounded-md border px-3 py-1 text-xs font-medium" @change="runSearch">
             <option value="all">All epics</option>
             <option v-for="epic in epicsByProject" :key="epic.id" :value="epic.id">
               {{ epic.title }} ({{ epic.doneCount ?? 0 }}/{{ epic.totalCount ?? 0 }})
             </option>
           </select>
+          <Button variant="ghost" size="xs" class="text-muted-foreground" @click="resetFilters">Reset</Button>
         </div>
       </div>
 
@@ -157,6 +168,11 @@
         <p v-if="filteredTickets.length === 0" class="px-4 py-6 text-center text-sm text-muted-foreground">
           No tickets match that filter. Clear filters or create a new ticket.
         </p>
+        <div class="flex justify-center bg-card p-3">
+          <Button v-if="nextCursor" :disabled="loadingMore" variant="outline" size="sm" @click="loadMore">
+            {{ loadingMore ? 'Loading...' : 'Load more' }}
+          </Button>
+        </div>
       </div>
     </AppCard>
 
@@ -348,6 +364,7 @@ import { useUsersStore } from '@/stores/users'
 import { useEpicsStore } from '@/stores/epics'
 import { useProjectsStore } from '@/stores/projects'
 import { useAuthStore } from '@/stores/auth'
+import { useDebounceFn } from '@vueuse/core'
 import { formatDate } from '@/utils/helpers'
 import type { CreateTicketPayload, Ticket } from '@/types/models'
 import type { TicketPriority, TicketType } from '@/utils/constants'
@@ -355,7 +372,7 @@ import type { TicketPriority, TicketType } from '@/utils/constants'
 const router = useRouter()
 const route = useRoute()
 const ticketsStore = useTicketsStore()
-const { tickets } = storeToRefs(ticketsStore)
+const { tickets, loading: ticketsLoading, loadingMore, nextCursor } = storeToRefs(ticketsStore)
 const usersStore = useUsersStore()
 const { users } = storeToRefs(usersStore)
 const epicsStore = useEpicsStore()
@@ -370,9 +387,10 @@ const editing = ref(false)
 const editingId = ref(null)
 const confirming = ref(null)
 const toast = reactive({ open: false, variant: 'success', message: '' })
-const query = ref<string>((route.query.q as string) ?? '')
 const statusFilter = ref('all')
 const epicFilter = ref('all')
+const searchTerm = ref<string>((route.query.q as string) ?? '')
+const assigneeFilter = ref<'all' | string>('all')
 const statusOptions = [
   { label: 'All', value: 'all' },
   { label: 'Backlog', value: 'backlog' },
@@ -411,7 +429,7 @@ const formErrors = reactive<{ title?: string; project?: string; description?: st
 watch(
   () => route.query.q,
   (val) => {
-    query.value = (val as string) ?? ''
+    searchTerm.value = (val as string) ?? ''
   }
 )
 
@@ -525,7 +543,7 @@ const assigneeLabel = (ticket) => {
 }
 
 const filteredTickets = computed(() => {
-  const queryValue = query.value.trim().toLowerCase()
+  const queryValue = searchTerm.value.trim().toLowerCase()
   return tickets.value
     .filter((ticket) => {
       if (statusFilter.value === 'all') return true
@@ -534,6 +552,10 @@ const filteredTickets = computed(() => {
     .filter((ticket) => {
       if (epicFilter.value === 'all') return true
       return ticket.epicId === epicFilter.value
+    })
+    .filter((ticket) => {
+      if (assigneeFilter.value === 'all') return true
+      return (ticket.assigneeId ?? '') === assigneeFilter.value
     })
     .filter((ticket) => {
       if (!queryValue) return true
@@ -562,6 +584,39 @@ const backlogTickets = computed(() =>
     .filter((ticket) => ticket.status === 'backlog')
     .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))
 )
+
+const runSearch = useDebounceFn(async () => {
+  await ticketsStore.fetchTicketsWithFilters({
+    projectId: epicProjectFilter.value,
+    assigneeId: assigneeFilter.value === 'all' ? '' : assigneeFilter.value,
+    status: statusFilter.value === 'all' ? '' : statusFilter.value,
+    epicId: epicFilter.value === 'all' ? '' : epicFilter.value,
+    q: searchTerm.value,
+    force: true,
+  })
+}, 300)
+
+const resetFilters = async () => {
+  statusFilter.value = 'all'
+  epicFilter.value = 'all'
+  assigneeFilter.value = 'all'
+  searchTerm.value = ''
+  epicProjectFilter.value = 'all'
+  await runSearch()
+}
+
+const loadMore = async () => {
+  if (!nextCursor.value) return
+  await ticketsStore.fetchTicketsWithFilters({
+    projectId: epicProjectFilter.value,
+    assigneeId: assigneeFilter.value === 'all' ? '' : assigneeFilter.value,
+    status: statusFilter.value === 'all' ? '' : statusFilter.value,
+    epicId: epicFilter.value === 'all' ? '' : epicFilter.value,
+    q: searchTerm.value,
+    append: true,
+    force: true,
+  })
+}
 
 const formatStatus = (status) => status?.replace('_', ' ') ?? '-'
 const projectDisplay = (projectId) => projectNameById.value[projectId] ?? 'Unassigned'
@@ -732,7 +787,14 @@ const showToast = (message: string, variant = 'success') => {
 onMounted(async () => {
   if (!projects.value.length) await projectsStore.fetchProjects()
   if (!users.value.length) await usersStore.fetchUsers()
-  if (!tickets.value.length) await ticketsStore.fetchTickets(true)
+  await ticketsStore.fetchTicketsWithFilters({
+    projectId: epicProjectFilter.value,
+    assigneeId: assigneeFilter.value === 'all' ? '' : assigneeFilter.value,
+    status: statusFilter.value === 'all' ? '' : statusFilter.value,
+    epicId: epicFilter.value === 'all' ? '' : epicFilter.value,
+    q: searchTerm.value,
+    force: true,
+  })
   if (form.projectId) {
     await epicsStore.fetchByProject(form.projectId)
   }

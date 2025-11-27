@@ -101,7 +101,18 @@
 
     <AppCard title="Squad rankings" description="Full breakdown of XP and ticket closures.">
       <template #action>
-        <span class="text-xs uppercase text-muted-foreground">{{ contendersCount }} total operators</span>
+        <div class="flex items-center gap-3">
+          <span class="text-xs uppercase text-muted-foreground">{{ contendersCount }} total operators</span>
+          <Button
+            v-if="leaderboardNextCursor != null"
+            size="sm"
+            variant="outline"
+            :disabled="leaderboardLoading"
+            @click="loadMore"
+          >
+            {{ leaderboardLoading ? 'Loading...' : 'Load more' }}
+          </Button>
+        </div>
       </template>
 
       <div v-if="rankingWithGap.length" class="overflow-hidden rounded-2xl border border-border">
@@ -149,7 +160,7 @@ import { Button } from '@/components/atoms/ui/button'
 import { useGamificationStore } from '@/stores/gamification'
 
 const gamificationStore = useGamificationStore()
-const { leaderboard } = storeToRefs(gamificationStore)
+const { leaderboard, leaderboardNextCursor, leaderboardLoading } = storeToRefs(gamificationStore)
 
 const loadLeaderboard = async () => {
   try {
@@ -169,6 +180,11 @@ onMounted(() => {
   }
 })
 
+const loadMore = async () => {
+  if (leaderboardNextCursor.value == null) return
+  await gamificationStore.fetchLeaderboard({ append: true })
+}
+
 const ranking = computed(() =>
   [...leaderboard.value].sort((a, b) => {
     if (a.rank && b.rank) return a.rank - b.rank
@@ -182,10 +198,7 @@ const rankingWithGap = computed(() => {
   return ranking.value.map((entry, index) => ({
     ...entry,
     rank: entry.rank || index + 1,
-    xpGap:
-      typeof entry.xpGap === 'number' && !Number.isNaN(entry.xpGap)
-        ? entry.xpGap
-        : Math.max(0, leaderXp - (entry.xp ?? 0)),
+    xpGap: typeof entry.xpGap === 'number' && !Number.isNaN(entry.xpGap) ? entry.xpGap : Math.max(0, leaderXp - (entry.xp ?? 0)),
   }))
 })
 

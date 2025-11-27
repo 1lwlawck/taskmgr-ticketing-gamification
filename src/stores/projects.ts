@@ -32,6 +32,7 @@ const normalizeProject = (payload: any): Project => ({
   })),
   invites: (payload.invites ?? []) as ProjectInvite[],
   activity: payload.activity ?? [],
+  activityNextCursor: payload.activityNextCursor ?? null,
   board: buildEmptyBoard(),
 })
 
@@ -39,30 +40,94 @@ export const useProjectsStore = defineStore('projects', {
   state: () => ({
     projects: [] as Project[],
     loading: false,
+    loadingMore: false,
+    nextCursor: null as string | null,
+    currentQuery: {
+      q: '',
+      status: '',
+    },
   }),
   getters: {
     getById: (state) => (id: string) => state.projects.find((project) => project.id === id),
   },
   actions: {
-    async fetchProjects(force = false) {
-      if (!force && this.projects.length) return
-      this.loading = true
+    async fetchProjects(options?: { force?: boolean; q?: string; status?: string; append?: boolean }) {
+      const { force = false, q, status, append = false } = options || {}
+      const isReset = !append
+      if (!force && !isReset && !this.nextCursor) return
+      if (isReset) {
+        this.nextCursor = null
+        this.projects = []
+      }
+      const isFirstLoad = isReset && !append
+      this.loading = isFirstLoad
+      this.loadingMore = append
+
+      const queryQ = q ?? this.currentQuery.q ?? ''
+      const queryStatus = status ?? this.currentQuery.status ?? ''
+      this.currentQuery = { q: queryQ, status: queryStatus }
+
+      const params: Record<string, any> = { limit: 50 }
+      if (queryQ) params.q = queryQ
+      if (queryStatus) params.status = queryStatus
+      if (append && this.nextCursor) params.cursor = this.nextCursor
+
       try {
-        const { data } = await api.get('/projects')
-        this.projects = (data?.data ?? []).map(normalizeProject)
+        const { data } = await api.get('/projects', { params })
+        const body = data as any
+        const list = (body?.data ?? body) as any[]
+        const normalized = list.map(normalizeProject)
+        if (append) {
+          const existingIds = new Set(this.projects.map((p) => p.id))
+          normalized.forEach((p) => {
+            if (!existingIds.has(p.id)) this.projects.push(p)
+          })
+        } else {
+          this.projects = normalized
+        }
+        this.nextCursor = body?.nextCursor ?? null
       } catch (error) {
         throw handleApiError(error)
       } finally {
         this.loading = false
+        this.loadingMore = false
       }
     },
-    async fetchProject(projectId: string) {
+    async fetchProject(projectId: string, params?: { activityLimit?: number; activityCursor?: string }) {
       try {
-        const { data } = await api.get(`/projects/${projectId}`)
+        const { data } = await api.get(`/projects/${projectId}`, { params })
         const body = (data as any).data ?? data
         const normalized = normalizeProject(body)
         this.upsertProject(normalized)
         return normalized
+      } catch (error) {
+        throw handleApiError(error)
+      }
+    },
+    async fetchProjectActivity(projectId: string, options?: { cursor?: string; limit?: number }) {
+      const project = this.getById(projectId)
+      if (!project) throw new Error('Project not found')
+      try {
+        const params: Record<string, any> = {}
+        if (options?.cursor) params.activityCursor = options.cursor
+        if (options?.limit) params.activityLimit = options.limit
+        const { data } = await api.get(`/projects/${projectId}`, { params })
+        const body = (data as any).data ?? data
+        const normalized = normalizeProject(body)
+        // append activity when cursor is present
+        if (options?.cursor && project.activity?.length) {
+          const merged = [...project.activity]
+          const existingIds = new Set(merged.map((a) => a.id))
+          ;(normalized.activity ?? []).forEach((a) => {
+            if (!existingIds.has(a.id)) merged.push(a)
+          })
+          project.activity = merged
+          project.activityNextCursor = normalized.activityNextCursor ?? null
+        } else {
+          project.activity = normalized.activity ?? []
+          project.activityNextCursor = normalized.activityNextCursor ?? null
+        }
+        return project
       } catch (error) {
         throw handleApiError(error)
       }
@@ -192,6 +257,9 @@ export const useProjectsStore = defineStore('projects', {
         if (!project.activity?.length) {
           project.activity = existing.activity
         }
+        if (project.activityNextCursor === undefined) {
+          project.activityNextCursor = existing.activityNextCursor ?? null
+        }
         this.projects[index] = project
       } else {
         this.projects.push(project)
@@ -200,6 +268,9 @@ export const useProjectsStore = defineStore('projects', {
     reset() {
       this.projects = []
       this.loading = false
+      this.loadingMore = false
+      this.nextCursor = null
+      this.currentQuery = { q: '', status: '' }
     },
   },
 })
