@@ -7,7 +7,12 @@
         <span class="text-xs uppercase text-slate-500">Invite code</span>
         <input v-model.trim="code" class="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900 uppercase" />
       </label>
-      <button type="submit" class="rounded-md bg-slate-900 px-4 py-2 text-white">Join</button>
+      <button
+        type="submit"
+        class="rounded-md border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 px-4 py-2 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+      >
+        Join
+      </button>
     </form>
     <p v-if="message" :class="success ? 'text-slate-700' : 'text-slate-400'">{{ message }}</p>
   </section>

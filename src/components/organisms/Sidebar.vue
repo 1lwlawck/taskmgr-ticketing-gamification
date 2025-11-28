@@ -1,9 +1,15 @@
 <template>
-  <SidebarRoot class="flex-none border-r border-border bg-white text-sidebar-foreground">
+  <SidebarRoot class="flex-none border-r border-border bg-gradient-to-b from-white via-slate-50 to-slate-100 text-sidebar-foreground">
     <SidebarHeader class="border-b border-border px-4 py-4">
       <div class="flex items-center gap-3">
-        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-600">
-          <span class="text-sm font-semibold">{{ initials }}</span>
+        <div
+          class="relative h-10 w-10 overflow-hidden rounded-full shadow-lg ring-2 ring-indigo-100 ring-offset-2 ring-offset-white"
+          :style="avatarGradient(currentUser?.name)"
+        >
+          <span class="absolute inset-0 bg-gradient-to-br from-indigo-500 via-sky-400 to-emerald-400 opacity-80"></span>
+          <span class="relative flex h-full w-full items-center justify-center text-sm font-semibold uppercase text-white drop-shadow">
+            {{ initials }}
+          </span>
         </div>
         <div class="flex-1 space-y-1 text-sm">
           <p class="text-base font-semibold text-sidebar-foreground">
@@ -30,16 +36,16 @@
         <SidebarMenuItem v-for="item in primaryNav" :key="item.to">
           <SidebarMenuButton
             :is-active="isActive(item.to)"
-            :disabled="isActive(item.to)"
             :class="[
               'w-full flex items-center gap-4 rounded-8 px-4 py-3 text-base transition-all',
               isActive(item.to)
-                ? 'bg-zinc-100 border border-zinc-300 text-zinc-900 shadow-md font-semibold'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-semibold'
+                ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-semibold [&_span]:text-white'
+                : 'text-slate-600 hover:bg-white hover:border hover:border-indigo-100 hover:text-slate-900 font-semibold shadow-sm'
             ]"
+            :style="isActive(item.to) ? activeGradientStyle : undefined"
             @click="navigateTo(item.to)"
           >
-            <span class="h-5 w-5" v-html="ICONS[item.icon]"></span>
+            <span class="h-5 w-5 text-slate-500 transition-colors" v-html="ICONS[item.icon]"></span>
             <span class="flex-1 truncate">{{ item.label }}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -48,16 +54,16 @@
         <SidebarMenuItem>
           <SidebarMenuButton
             :is-active="isActive('/projects')"
-            :disabled="isActive('/projects')"
             :class="[
-              'w-full flex items-center gap-4 rounded-2xl px-4 py-3 text-base transition-all',
+              'w-full flex items-center gap-4 rounded-md px-4 py-3 text-base transition-all',
               isActive('/projects')
-                ? 'bg-zinc-100 border border-zinc-300 text-zinc-900 shadow-md font-semibold'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-semibold [&_span]:text-white'
+                : 'text-slate-600 hover:bg-white hover:border hover:border-indigo-100 hover:text-slate-900 shadow-sm'
             ]"
+            :style="isActive('/projects') ? activeGradientStyle : undefined"
             @click="navigateTo('/projects')"
           >
-            <span class="h-5 w-5" v-html="ICONS.projects"></span>
+            <span class="h-5 w-5 text-slate-500 transition-colors" v-html="ICONS.projects"></span>
             <span class="flex-1 truncate font-semibold">Projects</span>
             <span class="text-xs uppercase text-slate-400 font-semibold">team</span>
           </SidebarMenuButton>
@@ -71,18 +77,18 @@
             >
               <SidebarMenuSubButton
                 :is-active="project.id === activeProjectId"
-                :disabled="project.id === activeProjectId"
                 size="sm"
                 :class="[
                   'w-full flex items-center justify-between rounded-8 px-4 py-3 text-sm transition-all',
                   project.id === activeProjectId
-                    ? 'bg-zinc-100 border border-zinc-300 shadow text-zinc-900 font-medium'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    ? 'border border-slate-800 text-white shadow backdrop-blur font-medium shadow-indigo-500/25 [&_span]:text-white'
+                    : 'text-slate-600 hover:bg-white hover:border hover:border-indigo-100 hover:text-slate-900 shadow-sm'
                 ]"
+                :style="project.id === activeProjectId ? activeGradientStyle : undefined"
                 @click="navigateTo('/projects')"
               >
                 <span class="truncate mr-8">{{ project.name }}</span>
-                <SidebarMenuBadge class="!text-xs !font-semibold">
+                <SidebarMenuBadge class="!text-xs !font-semibold text-white">
                   {{ project.status }}
                 </SidebarMenuBadge>
               </SidebarMenuSubButton>
@@ -92,13 +98,13 @@
             <SidebarMenuSubItem>
               <SidebarMenuSubButton
                 size="sm"
-                :disabled="isActive('/projects')"
                 :class="[
                   'w-full flex items-center justify-between rounded-8 px-4 py-3 text-sm transition-all',
                   isActive('/projects')
-                    ? 'bg-zinc-100 border border-zinc-300 shadow text-zinc-900 font-medium'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    ? 'border border-slate-800 text-white shadow backdrop-blur font-medium shadow-indigo-500/25 [&_span]:text-white'
+                    : 'text-slate-600 hover:bg-white hover:border hover:border-indigo-100 hover:text-slate-900 shadow-sm'
                 ]"
+                :style="isActive('/projects') ? activeGradientStyle : undefined"
                 @click="navigateTo('/projects')"
               >
                 <span>View all projects</span>
@@ -114,16 +120,16 @@
         <SidebarMenuItem v-for="item in secondaryNav" :key="item.to">
           <SidebarMenuButton
             :is-active="isActive(item.to)"
-            :disabled="isActive(item.to)"
             :class="[
               'w-full flex items-center gap-4 rounded-8 px-4 py-3 text-base transition-all',
               isActive(item.to)
-                ? 'bg-zinc-100 border border-zinc-300 text-zinc-900 shadow-md font-semibold'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-semibold'
+                ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-semibold [&_span]:text-white'
+                : 'text-slate-600 hover:bg-white hover:border hover:border-indigo-100 hover:text-slate-900 font-semibold shadow-sm'
             ]"
+            :style="isActive(item.to) ? activeGradientStyle : undefined"
             @click="navigateTo(item.to)"
           >
-            <span class="h-5 w-5" v-html="ICONS[item.icon]"></span>
+            <span class="h-5 w-5 text-slate-500 transition-colors" v-html="ICONS[item.icon]"></span>
             <span class="flex-1 truncate">{{ item.label }}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -141,11 +147,11 @@
         </div>
 
         <div class="grid grid-cols-2 gap-2">
-          <div class="rounded-lg border border-border bg-background p-3 text-sm">
+          <div class="rounded-lg border border-indigo-100 bg-white p-3 text-sm shadow-sm">
             <p class="text-3xl font-semibold text-slate-900">{{ stats?.level ?? 1 }}</p>
             <p class="text-xs text-slate-500">Level</p>
           </div>
-          <div class="rounded-lg border border-border bg-background p-3 text-sm">
+          <div class="rounded-lg border border-emerald-100 bg-white p-3 text-sm shadow-sm">
             <p class="text-3xl font-semibold text-slate-900">
               {{ stats?.xp ?? 0 }}
             </p>
@@ -153,10 +159,15 @@
           </div>
         </div>
 
-        <Button variant="secondary" size="sm" class="w-full" @click="createProject">
+        <Button
+          variant="secondary"
+          size="sm"
+          class="w-full border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+          @click="createProject"
+        >
           Launch project
         </Button>
-        <Button variant="outline" size="sm" class="w-full" @click="handleLogout">
+        <Button variant="outline" size="sm" class="w-full hover:border-indigo-200 hover:text-indigo-700" @click="handleLogout">
           Logout
         </Button>
       </SidebarGroup>
@@ -284,6 +295,22 @@ const initials = computed(() => {
     .join('')
     .toUpperCase()
 })
+const avatarGradient = (seed = '') => {
+  const palette = [
+    ['#6366F1', '#22D3EE', '#34D399'],
+    ['#7C3AED', '#60A5FA', '#2DD4BF'],
+    ['#06B6D4', '#0EA5E9', '#8B5CF6'],
+    ['#F59E0B', '#F97316', '#EC4899'],
+  ]
+  const hash = seed.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
+  const colors = palette[hash % palette.length]
+  return {
+    background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]}, ${colors[2]})`,
+  }
+}
+const activeGradientStyle = {
+  background: 'linear-gradient(135deg, #0b1224 0%, #10182f 45%, #1c2650 100%)',
+}
 
 const isActive = (path: string) => route.path === path
 

@@ -133,7 +133,7 @@
               <td class="px-4 py-3 font-semibold">#{{ user.rank }}</td>
               <td class="px-4 py-3">
                 <p class="font-semibold text-foreground">{{ user.name }}</p>
-                <p class="text-xs text-muted-foreground">{{ user.bio ?? '�' }}</p>
+                <p class="text-xs text-muted-foreground">{{ user.bio ?? '' }}</p>
               </td>
               <td class="px-4 py-3 capitalize text-foreground">{{ formatRole(user.role) }}</td>
               <td class="px-4 py-3 text-foreground">{{ user.level }}</td>

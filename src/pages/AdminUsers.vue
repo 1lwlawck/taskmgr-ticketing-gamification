@@ -52,8 +52,13 @@
             </Button>
           </div>
         </div>
-        <Input v-model="searchQuery" placeholder="Cari nama atau username" class="bg-transparent" />
-        <div class="overflow-x-auto rounded-2xl border border-border">
+        <div class="flex flex-wrap items-center gap-3">
+          <Input v-model="searchQuery" placeholder="Cari nama atau username" class="w-full flex-1 rounded-2xl border border-border bg-white/80 shadow-sm" />
+          <span class="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 shadow-sm">
+            {{ visibleUsers.length }} user
+          </span>
+        </div>
+        <div class="overflow-x-auto rounded-2xl border border-border shadow-inner">
           <table class="min-w-full divide-y divide-border text-sm text-foreground">
             <thead class="bg-muted/50 text-xs uppercase tracking-[0.3em] text-muted-foreground">
               <tr>
@@ -62,23 +67,41 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-border bg-card">
-              <tr v-for="user in visibleUsers" :key="user.id">
+              <tr v-for="user in visibleUsers" :key="user.id" class="transition hover:bg-muted/40">
                 <td class="px-4 py-4">
-                  <p class="text-base font-semibold text-foreground">{{ user.name }}</p>
-                  <p class="text-xs text-muted-foreground">@{{ user.username }}</p>
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="relative h-10 w-10 shrink-0 overflow-hidden rounded-full shadow-lg ring-2 ring-indigo-100 ring-offset-2 ring-offset-white"
+                      :style="gradientAvatar(user.name)"
+                    >
+                      <span class="absolute inset-0 bg-gradient-to-br from-indigo-500 via-sky-400 to-emerald-400 opacity-80"></span>
+                      <span class="relative flex h-full w-full items-center justify-center text-sm font-semibold uppercase text-white drop-shadow">
+                        {{ initials(user.name) }}
+                      </span>
+                    </div>
+                    <div>
+                      <p class="text-base font-semibold text-foreground">{{ user.name }}</p>
+                      <p class="text-xs text-muted-foreground">@{{ user.username }}</p>
+                    </div>
+                  </div>
                 </td>
                 <td class="px-4 py-4">
-                  <select
-                    :disabled="!isAdmin"
-                    v-model="user.role"
-                    class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-                    @change="(event) => onRoleChange(user.id, event)"
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="project_manager">Project Manager</option>
-                    <option value="developer">Developer</option>
-                    <option value="viewer">Viewer</option>
-                  </select>
+                  <div class="flex items-center gap-2">
+                    <!-- <span class="rounded-full px-3 py-1 text-[11px] font-semibold uppercase" :class="roleBadgeClass(user.role)">
+                      {{ roleLabel(user.role) }}
+                    </span> -->
+                    <select
+                      :disabled="!isAdmin"
+                      v-model="user.role"
+                      class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      @change="(event) => onRoleChange(user.id, event)"
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="project_manager">Project Manager</option>
+                      <option value="developer">Developer</option>
+                      <option value="viewer">Viewer</option>
+                    </select>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -149,6 +172,45 @@ const visibleUsers = computed(() => {
 })
 
 const adminCount = computed(() => users.value.filter((user) => user.role === 'admin').length)
+const roleLabel = (role: Role) => {
+  const map: Record<Role, string> = {
+    admin: 'Admin',
+    project_manager: 'Project Manager',
+    developer: 'Developer',
+    viewer: 'Viewer',
+  }
+  return map[role] ?? role
+}
+const roleBadgeClass = (role: Role) => {
+  const map: Record<Role, string> = {
+    admin: 'border border-amber-200 bg-amber-50 text-amber-700',
+    project_manager: 'border border-indigo-200 bg-indigo-50 text-indigo-700',
+    developer: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+    viewer: 'border border-slate-200 bg-slate-50 text-slate-600',
+  }
+  return map[role] ?? 'border border-slate-200 bg-slate-50 text-slate-600'
+}
+const initials = (name = '') =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+const gradientAvatar = (seed = '') => {
+  const palette = [
+    ['#6366F1', '#22D3EE', '#34D399'],
+    ['#7C3AED', '#60A5FA', '#2DD4BF'],
+    ['#06B6D4', '#0EA5E9', '#8B5CF6'],
+    ['#F59E0B', '#F97316', '#EC4899'],
+  ]
+  const hash = seed.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
+  const colors = palette[hash % palette.length]
+  return {
+    background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]}, ${colors[2]})`,
+  }
+}
 
 const onRoleChange = async (userId: string, event: Event) => {
   const target = event.target as HTMLSelectElement | null

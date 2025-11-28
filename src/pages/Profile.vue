@@ -5,8 +5,14 @@
       <div class="pointer-events-none absolute -left-16 bottom-0 h-60 w-60 rounded-full bg-indigo-500/30 blur-3xl"></div>
       <div class="relative flex flex-col gap-6 p-8 lg:flex-row lg:items-center lg:justify-between">
         <div class="flex items-center gap-6">
-          <div class="flex h-24 w-24 items-center justify-center rounded-full bg-slate-900 text-3xl font-semibold uppercase text-white shadow-lg">
-            {{ initials }}
+          <div
+            class="relative h-24 w-24 overflow-hidden rounded-full shadow-2xl ring-4 ring-indigo-100 ring-offset-4 ring-offset-slate-900"
+            :style="avatarGradient(currentUser?.name)"
+          >
+            <span class="absolute inset-0 bg-gradient-to-br from-indigo-500 via-sky-400 to-emerald-400 opacity-80"></span>
+            <span class="relative flex h-full w-full items-center justify-center text-3xl font-semibold uppercase text-white drop-shadow-lg">
+              {{ initials }}
+            </span>
           </div>
           <div class="space-y-2">
             <p class="text-xs uppercase tracking-[0.4em] text-white/70">Operator Profile</p>
@@ -103,7 +109,12 @@
             <span class="text-xs uppercase text-muted-foreground">Bio</span>
             <textarea v-model="form.bio" rows="4" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"></textarea>
           </label>
-          <Button type="submit" class="w-full bg-slate-900 text-white">Save changes</Button>
+          <Button
+            type="submit"
+            class="w-full border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+          >
+            Save changes
+          </Button>
         </form>
         <div class="mt-8 space-y-3 border-t border-border pt-6">
           <div class="flex items-center justify-between">
@@ -127,7 +138,11 @@
               <input v-model="pwd.new2" type="password" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" required />
             </label>
             <p v-if="pwdError" class="text-xs text-rose-600">{{ pwdError }}</p>
-            <Button type="submit" class="w-full bg-slate-900 text-white" :disabled="pwdSubmitting">
+            <Button
+              type="submit"
+              class="w-full border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110 disabled:opacity-50"
+              :disabled="pwdSubmitting"
+            >
               {{ pwdSubmitting ? 'Updating...' : 'Update password' }}
             </Button>
           </form>
@@ -181,6 +196,19 @@ const initials = computed(() => {
     .slice(0, 2)
     .toUpperCase()
 })
+const avatarGradient = (seed = '') => {
+  const palette = [
+    ['#6366F1', '#22D3EE', '#34D399'],
+    ['#7C3AED', '#60A5FA', '#2DD4BF'],
+    ['#06B6D4', '#0EA5E9', '#8B5CF6'],
+    ['#F59E0B', '#F97316', '#EC4899'],
+  ]
+  const hash = seed.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
+  const colors = palette[hash % palette.length]
+  return {
+    background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]}, ${colors[2]})`,
+  }
+}
 
 const xpToNext = computed(() => Math.max(0, (stats.value?.nextLevelThreshold ?? 100) - (stats.value?.xp ?? 0)))
 const xpProgress = computed(() => {

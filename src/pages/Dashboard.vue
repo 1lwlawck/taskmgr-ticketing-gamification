@@ -121,12 +121,22 @@
       </AppCard>
 
       <AppCard title="Weekly productivity" description="Ticket closures (last 7 days)">
-        <div class="rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          <p>Daily output vs goal</p>
-          <p class="text-xs">Goal 5 tickets/day</p>
+        <div class="rounded-md border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 px-4 py-3 text-sm text-white shadow">
+          <div class="flex items-center justify-between gap-3">
+            <div >
+              <p class="text-xs uppercase tracking-[0.35em] text-white/60">Daily output</p>
+              <p class="text-lg font-semibold text-white">Goal 5 tickets/day</p>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-white/70">
+              <span class="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-white/80">Last 7 days</span>
+              <span class="rounded-full border border-emerald-300/40 bg-emerald-200/10 px-3 py-1 text-emerald-100">
+                Avg {{ avgWeeklyClosed }} / day
+              </span>
+            </div>
+          </div>
         </div>
         <ChartLegend :items="chartLegendItems" class="my-4" />
-        <VisXYContainer :height="240" :margin="{ top: 24, right: 16, bottom: 24, left: 0 }">
+        <VisXYContainer :height="260" :margin="{ top: 32, right: 16, bottom: 28, left: 0 }">
           <VisStackedBar
             :data="chartPoints"
             :x="xAccessor"
@@ -472,7 +482,7 @@ const goalPoints = computed(() =>
 )
 const goalAccessor = (d) => d.value
 
-const chartColors = defaultColors(1)
+const chartColors = ['#22d3ee']
 const chartLegendItems = computed<BulletLegendItemInterface[]>(() => [
   { name: 'Tickets closed', color: chartColors[0] },
 ])
@@ -480,6 +490,10 @@ const xAccessor = (d) => d.position
 const yAccessor = (d) => d.value
 const chartIndex = 'day'
 const formatXAxis = (tick: number) => productivityBuckets.value[tick]?.day ?? ''
+const avgWeeklyClosed = computed(() => {
+  const total = productivityBuckets.value.reduce((acc, d) => acc + (d.value ?? 0), 0)
+  return Math.round((total / 7) * 10) / 10
+})
 
 const levelBadge = computed(() => {
   const level = stats.value?.level ?? 1

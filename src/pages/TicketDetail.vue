@@ -128,7 +128,12 @@
               class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900"
               placeholder="Share an update..."
             ></textarea>
-            <button class="rounded-md bg-slate-900 px-4 py-2 text-white" type="submit">Post comment</button>
+            <button
+              class="rounded-md border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 px-4 py-2 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+              type="submit"
+            >
+              Post comment
+            </button>
           </form>
         </div>
         <div v-else class="space-y-2">

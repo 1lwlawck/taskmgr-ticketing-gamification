@@ -68,7 +68,7 @@
               <button type="button" class="rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground" @click="resetForm">Clear</button>
               <button
                 type="submit"
-                class="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white shadow hover:bg-slate-800 disabled:opacity-50"
+                class="rounded-xl border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 px-4 py-2 text-sm text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110 disabled:opacity-50"
                 :disabled="!canManageEpics || !selectedProject || !form.title.trim()"
               >
                 {{ editingId ? 'Save changes' : 'Create' }}

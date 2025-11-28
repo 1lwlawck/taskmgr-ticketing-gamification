@@ -46,8 +46,14 @@
           class="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 transition hover:border-slate-300"
           @click="toggleMenu"
         >
-          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold uppercase text-white shadow">
-            {{ initials }}
+          <div
+            class="relative h-8 w-8 overflow-hidden rounded-full shadow ring-2 ring-indigo-100 ring-offset-2 ring-offset-white"
+            :style="avatarGradient(currentUser?.name)"
+          >
+            <span class="absolute inset-0 bg-gradient-to-br from-indigo-500 via-sky-400 to-emerald-400 opacity-80"></span>
+            <span class="relative flex h-full w-full items-center justify-center text-xs font-semibold uppercase text-white drop-shadow">
+              {{ initials }}
+            </span>
           </div>
           <span>{{ currentUser?.name }}</span>
         </button>
@@ -92,6 +98,19 @@ const initials = computed(() => {
     .slice(0, 2)
     .toUpperCase()
 })
+const avatarGradient = (seed = '') => {
+  const palette = [
+    ['#6366F1', '#22D3EE', '#34D399'],
+    ['#7C3AED', '#60A5FA', '#2DD4BF'],
+    ['#06B6D4', '#0EA5E9', '#8B5CF6'],
+    ['#F59E0B', '#F97316', '#EC4899'],
+  ]
+  const hash = seed.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
+  const colors = palette[hash % palette.length]
+  return {
+    background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]}, ${colors[2]})`,
+  }
+}
 
 const toggleMenu = () => {
   showMenu.value = !showMenu.value

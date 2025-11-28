@@ -26,11 +26,17 @@
           </div>
         </div>
         <div class="flex flex-wrap gap-3">
-          <Button variant="secondary" class="border border-white/30 bg-white/15 text-white hover:bg-white/25" @click="openCreate">
+          <Button
+            variant="secondary"
+            class="border-0 bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-110"
+            @click="openCreate"
+          >
             New ticket
           </Button>
           <RouterLink to="/projects">
-            <Button variant="ghost" class="text-white hover:bg-white/10 hover:text-white">View projects</Button>
+            <Button variant="ghost" class="border border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+              View projects
+            </Button>
           </RouterLink>
         </div>
       </div>
@@ -78,7 +84,13 @@
             @input="runSearch"
           />
         </div>
-        <Button size="sm" class="bg-slate-900 text-white" @click="openCreate">New ticket</Button>
+        <Button
+          size="sm"
+          class="border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+          @click="openCreate"
+        >
+          New ticket
+        </Button>
       </div>
     </template>
 
@@ -87,7 +99,11 @@
           v-for="option in statusOptions"
           :key="option.value"
           class="rounded-md border px-3 py-1 text-xs font-medium transition"
-          :class="statusFilter === option.value ? 'border-slate-900 bg-slate-900 text-white' : 'border-border text-muted-foreground hover:text-foreground'"
+          :class="
+            statusFilter === option.value
+              ? 'border-indigo-400 bg-indigo-50 text-indigo-700 shadow-sm'
+              : 'border-border text-muted-foreground hover:border-indigo-200 hover:text-foreground'
+          "
           @click="statusFilter = option.value"
         >
           {{ option.label }}

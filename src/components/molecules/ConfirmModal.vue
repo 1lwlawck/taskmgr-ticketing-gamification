@@ -5,7 +5,12 @@
       <p class="mt-2 text-slate-500">{{ message }}</p>
       <div class="mt-4 flex justify-end gap-2">
         <button class="rounded-md px-4 py-2 text-slate-400 hover:text-slate-900" @click="$emit('cancel')">Cancel</button>
-        <button class="rounded-md bg-slate-900 px-4 py-2 text-white" @click="$emit('confirm')">Confirm</button>
+        <button
+          class="rounded-md border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 px-4 py-2 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+          @click="$emit('confirm')"
+        >
+          Confirm
+        </button>
       </div>
     </div>
   </div>
