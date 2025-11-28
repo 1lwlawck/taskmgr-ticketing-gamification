@@ -1,5 +1,5 @@
 <template>
-  <SidebarRoot class="flex-none border-r border-border bg-gradient-to-b from-white via-slate-50 to-slate-100 text-sidebar-foreground">
+  <SidebarRoot class="sidebar-white flex-none border-r border-border text-sidebar-foreground">
     <SidebarHeader class="border-b border-border px-4 py-4">
       <div class="flex items-center gap-3">
         <div
@@ -162,7 +162,7 @@
         <Button
           variant="secondary"
           size="sm"
-          class="w-full border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+          class="w-full border-0 bg-[linear-gradient(135deg,#0b1224,#10182f,#1c2650)] text-white shadow-md shadow-indigo-900/30 transition hover:brightness-110 hover:shadow-lg"
           @click="createProject"
         >
           Launch project
@@ -171,18 +171,26 @@
           Logout
         </Button>
       </SidebarGroup>
+      <ConfirmModal
+        :open="logoutConfirm"
+        title="Logout"
+        message="Are you sure you want to logout?"
+        @cancel="logoutConfirm = false"
+        @confirm="confirmLogout"
+      />
     </SidebarContent>
   </SidebarRoot>
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 import { useGamificationStore } from '@/stores/gamification'
 import { useProjectsStore } from '@/stores/projects'
 import { Button } from '@/components/atoms/ui/button'
+import ConfirmModal from '@/components/molecules/ConfirmModal.vue'
 import {
   Sidebar as SidebarRoot,
   SidebarContent,
@@ -311,6 +319,7 @@ const avatarGradient = (seed = '') => {
 const activeGradientStyle = {
   background: 'linear-gradient(135deg, #0b1224 0%, #10182f 45%, #1c2650 100%)',
 }
+const logoutConfirm = ref(false)
 
 const isActive = (path: string) => route.path === path
 
@@ -332,6 +341,11 @@ const navigateTo = (path: string) => {
 }
 
 const handleLogout = () => {
+  logoutConfirm.value = true
+}
+
+const confirmLogout = () => {
+  logoutConfirm.value = false
   authStore.logout()
   router.push('/login')
   closeOnMobile()
@@ -348,3 +362,12 @@ watch(
   }
 )
 </script>
+
+<style scoped>
+.sidebar-white :deep([data-sidebar="sidebar"]) {
+  background: #ffffff;
+}
+.sidebar-white :deep([data-mobile="true"]) {
+  background: #ffffff;
+}
+</style>

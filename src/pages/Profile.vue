@@ -50,14 +50,22 @@
         </div>
         <div class="mt-6 space-y-6">
           <div class="rounded-2xl border border-muted bg-muted/50 p-4">
-            <p class="text-xs uppercase text-muted-foreground">XP progress</p>
+            <div class="flex items-center justify-between text-xs uppercase text-muted-foreground">
+              <span>XP progress</span>
+              <span class="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+                {{ xpProgress }}%
+              </span>
+            </div>
             <div class="mt-3">
               <div class="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Level {{ stats?.level ?? 1 }}</span>
                 <span>{{ stats?.xp ?? 0 }} / {{ stats?.nextLevelThreshold ?? 100 }} XP</span>
               </div>
               <div class="mt-2 h-2 rounded-full bg-slate-200">
-                <span class="block h-2 rounded-full bg-slate-900 transition-all" :style="{ width: xpProgress + '%' }"></span>
+                <span
+                  class="block h-2 rounded-full transition-all"
+                  :style="{ width: xpProgress + '%', background: 'linear-gradient(135deg, #0b1224 0%, #10182f 45%, #1c2650 100%)' }"
+                ></span>
               </div>
             </div>
           </div>
@@ -111,7 +119,7 @@
           </label>
           <Button
             type="submit"
-            class="w-full border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+            class="w-full border-0 bg-[linear-gradient(135deg,#0b1224,#10182f,#1c2650)] text-white shadow-md shadow-indigo-900/30 transition hover:brightness-110 hover:shadow-lg"
           >
             Save changes
           </Button>
@@ -140,7 +148,7 @@
             <p v-if="pwdError" class="text-xs text-rose-600">{{ pwdError }}</p>
             <Button
               type="submit"
-              class="w-full border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110 disabled:opacity-50"
+              class="w-full border-0 bg-[linear-gradient(135deg,#0b1224,#10182f,#1c2650)] text-white shadow-md shadow-indigo-900/30 transition hover:brightness-110 hover:shadow-lg disabled:opacity-50"
               :disabled="pwdSubmitting"
             >
               {{ pwdSubmitting ? 'Updating...' : 'Update password' }}

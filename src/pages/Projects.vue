@@ -15,7 +15,7 @@
           <Button variant="secondary" class="border border-white/30 bg-white/15 text-white hover:bg-white/25" @click="showJoin = true">
             Join project
           </Button>
-          <Button class="bg-white text-slate-900 disabled:cursor-not-allowed disabled:opacity-60 hover:bg-slate-200" :disabled="!canCreateProject" @click="showModal = true">
+          <Button class="bg-white text-white disabled:cursor-not-allowed disabled:opacity-60 hover:bg-slate-200" :disabled="!canCreateProject" @click="showModal = true">
             Create project
           </Button>
         </div>
@@ -75,70 +75,74 @@
       </div>
     </div>
 
-    <div v-if="showModal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 backdrop-blur">
-      <div class="w-full max-w-lg rounded-3xl border border-border bg-card p-6 text-sm shadow-2xl">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Create</p>
-            <h2 class="text-xl font-semibold text-foreground">New project</h2>
+    <Teleport to="body">
+      <div v-if="showModal" class="fixed inset-0 z-[12000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-lg">
+        <div class="w-full max-w-lg rounded-3xl border border-border bg-card p-6 text-sm shadow-2xl">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Create</p>
+              <h2 class="text-xl font-semibold text-foreground">New project</h2>
+            </div>
+            <button class="text-sm text-muted-foreground" @click="resetModal">Close</button>
           </div>
-          <button class="text-sm text-muted-foreground" @click="resetModal">Close</button>
-        </div>
-        <form class="mt-6 space-y-4" @submit.prevent="handleCreate">
-          <label class="block space-y-1">
-            <span class="text-xs uppercase text-muted-foreground">Name <span class="text-rose-500">*</span></span>
-            <Input
-              v-model="form.name"
-              required
+          <form class="mt-6 space-y-4" @submit.prevent="handleCreate">
+            <label class="block space-y-1">
+              <span class="text-xs uppercase text-muted-foreground">Name <span class="text-rose-500">*</span></span>
+              <Input
+                v-model="form.name"
+                required
+                class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"
+              />
+              <p v-if="formErrors.name" class="text-[11px] text-rose-600">{{ formErrors.name }}</p>
+            </label>
+            <label class="block space-y-1">
+              <span class="text-xs uppercase text-muted-foreground">Description</span>
+              <textarea
+                v-model="form.description"
+                rows="3"
               class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"
-            />
-            <p v-if="formErrors.name" class="text-[11px] text-rose-600">{{ formErrors.name }}</p>
-          </label>
-          <label class="block space-y-1">
-            <span class="text-xs uppercase text-muted-foreground">Description</span>
-            <textarea
-              v-model="form.description"
-              rows="3"
-            class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"
-            ></textarea>
-          </label>
-          <div class="flex justify-end gap-2">
-            <Button type="button" variant="ghost" size="sm" class="text-muted-foreground" @click="resetModal">Cancel</Button>
-            <Button type="submit" size="sm">Create</Button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div v-if="showJoin" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur">
-      <div class="w-full max-w-md rounded-3xl border border-border bg-card p-6 text-sm shadow-2xl">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Join</p>
-            <h2 class="text-xl font-semibold text-foreground">Invite code</h2>
-          </div>
-          <button class="text-sm text-muted-foreground" @click="closeJoin">Close</button>
+              ></textarea>
+            </label>
+            <div class="flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" class="text-muted-foreground" @click="resetModal">Cancel</Button>
+              <Button type="submit" size="sm">Create</Button>
+            </div>
+          </form>
         </div>
-        <form class="space-y-3 pt-4" @submit.prevent="handleJoin">
-          <label class="block space-y-1">
-            <span class="text-xs uppercase text-muted-foreground">Invite code <span class="text-rose-500">*</span></span>
-            <Input v-model.trim="joinCode" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" />
-            <p v-if="formErrors.join" class="text-[11px] text-rose-600">{{ formErrors.join }}</p>
-          </label>
-          <div class="flex justify-end gap-2">
-            <Button type="button" variant="ghost" size="sm" class="text-muted-foreground" @click="closeJoin">Cancel</Button>
-            <Button type="submit" size="sm">Join</Button>
-          </div>
-          <p v-if="joinMessage" :class="successJoin ? 'text-emerald-500' : 'text-rose-500'">{{ joinMessage }}</p>
-        </form>
       </div>
-    </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showJoin" class="fixed inset-0 z-[12000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-lg">
+        <div class="w-full max-w-md rounded-3xl border border-border bg-card p-6 text-sm shadow-2xl">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Join</p>
+              <h2 class="text-xl font-semibold text-foreground">Invite code</h2>
+            </div>
+            <button class="text-sm text-muted-foreground" @click="closeJoin">Close</button>
+          </div>
+          <form class="space-y-3 pt-4" @submit.prevent="handleJoin">
+            <label class="block space-y-1">
+              <span class="text-xs uppercase text-muted-foreground">Invite code <span class="text-rose-500">*</span></span>
+              <Input v-model.trim="joinCode" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" />
+              <p v-if="formErrors.join" class="text-[11px] text-rose-600">{{ formErrors.join }}</p>
+            </label>
+            <div class="flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" class="text-muted-foreground" @click="closeJoin">Cancel</Button>
+              <Button type="submit" size="sm">Join</Button>
+            </div>
+            <p v-if="joinMessage" :class="successJoin ? 'text-emerald-500' : 'text-rose-500'">{{ joinMessage }}</p>
+          </form>
+        </div>
+      </div>
+    </Teleport>
 
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted } from 'vue'
+import { computed, reactive, ref, onMounted, watch, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import AppCard from '@/components/molecules/AppCard.vue'
 import ProjectCard from '@/components/molecules/ProjectCard.vue'
@@ -265,4 +269,19 @@ const closeJoin = () => {
   joinCode.value = ''
   formErrors.join = undefined
 }
+
+const toggleBodyBlur = (state: boolean) => {
+  const body = document.body
+  if (!body) return
+  if (state) body.classList.add('modal-open')
+  else body.classList.remove('modal-open')
+}
+
+watch(
+  () => showModal.value || showJoin.value,
+  (open) => toggleBodyBlur(Boolean(open)),
+  { immediate: true }
+)
+
+onUnmounted(() => toggleBodyBlur(false))
 </script>

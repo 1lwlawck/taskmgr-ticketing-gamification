@@ -283,8 +283,9 @@
       </AppCard>
     </div>
 
-    <div v-if="showModal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 backdrop-blur">
-      <div class="w-full max-w-xl rounded-3xl border border-border bg-card p-6 text-sm text-slate-600 shadow-2xl">
+    <Teleport to="body">
+      <div v-if="showModal" class="fixed inset-0 z-[12000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-lg">
+        <div class="w-full max-w-xl rounded-3xl border border-border bg-card p-6 text-sm text-slate-600 shadow-2xl">
         <h2 class="text-xl font-semibold text-slate-900">{{ editing ? 'Edit ticket' : 'New ticket' }}</h2>
         <form class="mt-4 grid gap-4 sm:grid-cols-2" @submit.prevent="handleSubmit">
           <label class="space-y-1 sm:col-span-2">
@@ -350,8 +351,9 @@
             <Button type="submit">Save</Button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
 
     <ConfirmModal :open="Boolean(confirming)" title="Delete ticket" message="This action cannot be undone." @cancel="confirming = null" @confirm="deleteTicket" />
     <div v-if="toast.open" class="fixed bottom-6 right-6 z-50">
@@ -366,7 +368,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch, onMounted } from 'vue'
+import { computed, reactive, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import ConfirmModal from '@/components/molecules/ConfirmModal.vue'
@@ -820,4 +822,19 @@ onMounted(async () => {
     await Promise.allSettled(tasks)
   }
 })
+
+const toggleBodyBlur = (state: boolean) => {
+  const body = document.body
+  if (!body) return
+  if (state) body.classList.add('modal-open')
+  else body.classList.remove('modal-open')
+}
+
+watch(
+  () => showModal.value,
+  (open) => toggleBodyBlur(Boolean(open)),
+  { immediate: true }
+)
+
+onUnmounted(() => toggleBodyBlur(false))
 </script>

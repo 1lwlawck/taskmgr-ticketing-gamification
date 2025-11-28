@@ -1,9 +1,9 @@
 <template>
-  <header class="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 shadow-sm">
+  <header class="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 shadow-sm topbar-blurable">
     <div class="flex items-center gap-3">
       <button class="text-slate-500 lg:hidden" @click="toggleSidebar">?</button>
 
-      <form @submit.prevent="handleSearch">
+      <!-- <form @submit.prevent="handleSearch">
         <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Search</p>
         <div class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-1 text-sm text-slate-600">
           <span>?</span>
@@ -14,7 +14,7 @@
             v-model="search"
           />
         </div>
-      </form>
+      </form> -->
     </div>
     
     <div class="flex items-center gap-4">
@@ -43,7 +43,7 @@
       <!-- USER DROPDOWN -->
       <div class="relative">
         <button
-          class="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 transition hover:border-slate-300"
+          class="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 transition hover:border-slate-300"
           @click="toggleMenu"
         >
           <div
@@ -71,6 +71,13 @@
         </div>
       </div>
     </div>
+    <ConfirmModal
+      :open="logoutConfirm"
+      title="Logout"
+      message="Are you sure you want to logout?"
+      @cancel="logoutConfirm = false"
+      @confirm="confirmLogout"
+    />
   </header>
 </template>
 
@@ -80,9 +87,11 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 import { useSidebar } from '@/components/atoms/ui/sidebar'
+import ConfirmModal from '@/components/molecules/ConfirmModal.vue'
 
 const search = ref<string>('')
 const showMenu = ref(false)
+const logoutConfirm = ref(false)
 
 const router = useRouter()
 const route = useRoute()
@@ -126,6 +135,11 @@ const handleSearch = () => {
 }
 
 const handleLogout = () => {
+  logoutConfirm.value = true
+}
+
+const confirmLogout = () => {
+  logoutConfirm.value = false
   auth.logout()
   showMenu.value = false
   router.push('/login')

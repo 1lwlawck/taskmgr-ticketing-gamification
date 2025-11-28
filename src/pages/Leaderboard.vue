@@ -117,18 +117,18 @@
 
       <div v-if="rankingWithGap.length" class="overflow-hidden rounded-2xl border border-border">
         <table class="min-w-full divide-y divide-border text-sm">
-          <thead class="bg-muted/60 text-muted-foreground">
+          <thead class="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 text-white">
             <tr>
               <th class="px-4 py-3 text-left">Rank</th>
               <th class="px-4 py-3 text-left">Operator</th>
               <th class="px-4 py-3 text-left">Role</th>
-              <th class="px-4 py-3 text-left">Level</th>
-              <th class="px-4 py-3 text-left">Tickets</th>
-              <th class="px-4 py-3 text-left">XP</th>
+              <th class="px-4 py-3 text-center">Level</th>
+              <th class="px-4 py-3 text-center">Tickets</th>
+              <th class="px-4 py-3 text-center">XP</th>
               <th class="px-4 py-3 text-right">Gap to #1</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-border bg-card text-foreground">
+          <tbody class="divide-y divide-border bg-card text-foreground px-3 py-2">
             <tr v-for="user in rankingWithGap" :key="user.id" class="transition hover:bg-muted/40">
               <td class="px-4 py-3 font-semibold">#{{ user.rank }}</td>
               <td class="px-4 py-3">
@@ -136,9 +136,9 @@
                 <p class="text-xs text-muted-foreground">{{ user.bio ?? '' }}</p>
               </td>
               <td class="px-4 py-3 capitalize text-foreground">{{ formatRole(user.role) }}</td>
-              <td class="px-4 py-3 text-foreground">{{ user.level }}</td>
-              <td class="px-4 py-3 text-foreground">{{ formatNumber(user.tickets_closed_count ?? 0) }}</td>
-              <td class="px-4 py-3 font-semibold text-foreground">{{ formatNumber(user.xp ?? 0) }}</td>
+              <td class="px-4 py-3 text-center text-foreground">{{ user.level }}</td>
+              <td class="px-4 py-3 text-center text-foreground">{{ formatNumber(user.tickets_closed_count ?? 0) }}</td>
+              <td class="px-4 py-3 text-center font-semibold text-foreground">{{ formatNumber(user.xp ?? 0) }}</td>
               <td class="px-4 py-3 text-right text-sm">
                 <span v-if="user.xpGap === 0" class="font-semibold text-emerald-600">Leader</span>
                 <span v-else class="text-muted-foreground">-{{ formatNumber(user.xpGap) }} XP</span>
