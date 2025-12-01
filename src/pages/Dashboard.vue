@@ -39,7 +39,7 @@
             </RouterLink>
           </div>
         </div>
-        <div class="w-full max-w-md rounded-2xl border border-white/15 bg-white/5 p-5 shadow-lg backdrop-blur">
+        <div class="w-full max-w-md rounded-md border border-white/15 bg-white/5 p-5 shadow-lg backdrop-blur">
           <div class="mb-3 flex items-center justify-between text-sm text-white/70">
             <span>XP progress</span>
             <span>{{ stats?.xp ?? 0 }} / {{ stats?.nextLevelThreshold ?? 100 }} XP</span>
@@ -77,11 +77,30 @@
       </AppCard>
       <AppCard title="Wins logged" description="Closed tickets">
         <div class="space-y-3">
-          <p class="text-4xl font-semibold text-foreground">{{ closedTickets }}</p>
+            <div class="flex items-center justify-between">
+            <p class="text-4xl font-semibold text-foreground">{{ closedTickets }}</p>
+            <span class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              {{ Math.max(closedTickets - highPriorityTickets, 0) }} normal wins
+            </span>
+          </div>
           <p class="text-sm text-muted-foreground">Lifetime closes tracked by gamification.</p>
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p class="text-xs uppercase text-slate-500">Streak</p>
-            <p class="text-lg font-semibold text-slate-900">{{ stats?.streak ?? 0 }} days active</p>
+          <div class="rounded-md border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 px-4 py-3 text-white shadow">
+            <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-white/70">
+              <span>Streak</span>
+              <span>{{ stats?.streak ?? 0 }} days</span>
+            </div>
+            <div class="mt-2 flex items-center justify-between text-sm text-white/80">
+              <p class="font-semibold">High priority: {{ highPriorityTickets }}</p>
+              <span class="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-white/80">
+                {{ dueSoonTickets }} due soon
+              </span>
+            </div>
+            <div class="mt-3 h-2 rounded-full bg-white/20">
+              <span
+                class="block h-2 rounded-full bg-emerald-400 transition-all"
+                :style="{ width: Math.min(closedTickets * 8, 100) + '%' }"
+              ></span>
+            </div>
           </div>
         </div>
       </AppCard>
@@ -155,29 +174,40 @@
     </div>
 
     <AppCard title="Recent XP events" description="Catatan XP terbaru milikmu.">
-      <ul v-if="xpEvents.length" class="divide-y divide-border text-sm">
-        <li v-for="event in xpEvents" :key="event.id" class="flex items-center justify-between py-3">
-          <div class="space-y-1">
-            <p class="font-semibold text-foreground">
-              +{{ event.xp ?? 0 }} XP
-              <span v-if="event.priority" class="text-xs uppercase text-muted-foreground">/ {{ event.priority }}</span>
-            </p>
-            <p class="text-xs text-muted-foreground">{{ event.note || 'XP update' }}</p>
+      <div v-if="xpEvents.length" class="space-y-3">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div
+            v-for="event in xpEvents"
+            :key="event.id"
+            class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+          >
+            <div class="flex items-center justify-between">
+              <span class="text-xs uppercase tracking-[0.25em] text-slate-400">+{{ event.xp ?? 0 }} XP</span>
+              <span
+                v-if="event.priority"
+                class="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold capitalize text-indigo-700"
+              >
+                {{ event.priority }}
+              </span>
+            </div>
+            <p class="mt-1 text-sm font-semibold text-foreground">{{ event.note || 'XP update' }}</p>
+            <p class="text-xs text-muted-foreground">{{ formatDate(event.timestamp ?? event.createdAt) }}</p>
           </div>
-          <span class="text-xs text-muted-foreground">{{ formatDate(event.timestamp ?? event.createdAt) }}</span>
-        </li>
-      </ul>
-      <p v-else class="text-sm text-muted-foreground">Belum ada catatan XP.</p>
-      <div class="mt-4 flex justify-end">
-        <Button
-          v-if="eventsNextCursor"
-          variant="outline"
-          size="sm"
-          :disabled="eventsLoadingMore"
-          @click="loadMoreEvents"
-        >
-          {{ eventsLoadingMore ? 'Loading...' : 'Load more' }}
-        </Button>
+        </div>
+        <div class="flex justify-end">
+          <Button
+            v-if="eventsNextCursor"
+            variant="outline"
+            size="sm"
+            :disabled="eventsLoadingMore"
+            @click="loadMoreEvents"
+          >
+            {{ eventsLoadingMore ? 'Loading...' : 'Load more' }}
+          </Button>
+        </div>
+      </div>
+      <div v-else class="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-muted-foreground">
+        Belum ada catatan XP. Tutup tiket atau beri komentar untuk mulai mengisi log.
       </div>
     </AppCard>
 
