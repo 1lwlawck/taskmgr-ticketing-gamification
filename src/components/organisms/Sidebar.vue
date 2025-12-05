@@ -13,9 +13,9 @@
         </div>
         <div class="flex-1 space-y-1 text-sm">
           <p class="text-base font-semibold text-sidebar-foreground">
-            {{ currentUser?.name ?? 'Ticket Operator' }}
+            {{ currentUser?.name ?? t('sidebar.defaultName') }}
           </p>
-          <p class="text-xs text-slate-500">{{ currentUser?.role ?? 'viewer' }}</p>
+          <p class="text-xs text-slate-500">{{ currentUser?.role ?? t('sidebar.defaultRole') }}</p>
         </div>
         <button
           class="text-slate-400 hover:text-slate-900 lg:hidden"
@@ -26,7 +26,7 @@
         </button>
       </div>
       <p class="mt-2 text-xs text-slate-500">
-        Earn badges and sharpen your response streaks.
+        {{ t('sidebar.tagline') }}
       </p>
     </SidebarHeader>
 
@@ -64,8 +64,8 @@
             @click="navigateTo('/projects')"
           >
             <span class="h-5 w-5 text-slate-500 transition-colors" v-html="ICONS.projects"></span>
-            <span class="flex-1 truncate font-semibold">Projects</span>
-            <span class="text-xs uppercase text-slate-400 font-semibold">team</span>
+            <span class="flex-1 truncate font-semibold">{{ t('nav.projects') }}</span>
+            <span class="text-xs uppercase text-slate-400 font-semibold">{{ t('nav.team') }}</span>
           </SidebarMenuButton>
 
           <!-- Sub menu (Projects list) -->
@@ -107,7 +107,7 @@
                 :style="isActive('/projects') ? activeGradientStyle : undefined"
                 @click="navigateTo('/projects')"
               >
-                <span>View all projects</span>
+                <span>{{ t('nav.viewAllProjects') }}</span>
                 <span class="text-xs font-semibold text-slate-500">
                   {{ projects?.length ?? 0 }}
                 </span>
@@ -148,14 +148,14 @@
 
         <div class="grid grid-cols-2 gap-2">
           <div class="rounded-lg border border-indigo-100 bg-white p-3 text-sm shadow-sm">
-            <p class="text-3xl font-semibold text-slate-900">{{ stats?.level ?? 1 }}</p>
-            <p class="text-xs text-slate-500">Level</p>
+          <p class="text-3xl font-semibold text-slate-900">{{ stats?.level ?? 1 }}</p>
+          <p class="text-xs text-slate-500">{{ t('sidebar.level') }}</p>
           </div>
           <div class="rounded-lg border border-emerald-100 bg-white p-3 text-sm shadow-sm">
             <p class="text-3xl font-semibold text-slate-900">
               {{ stats?.xp ?? 0 }}
             </p>
-            <p class="text-xs text-slate-500">XP</p>
+            <p class="text-xs text-slate-500">{{ t('sidebar.xp') }}</p>
           </div>
         </div>
 
@@ -165,16 +165,16 @@
           class="w-full border-0 bg-[linear-gradient(135deg,#0b1224,#10182f,#1c2650)] text-white shadow-md shadow-indigo-900/30 transition hover:brightness-110 hover:shadow-lg"
           @click="createProject"
         >
-          Launch project
+          {{ t('sidebar.launchProject') }}
         </Button>
         <Button variant="outline" size="sm" class="w-full hover:border-indigo-200 hover:text-indigo-700" @click="handleLogout">
-          Logout
+          {{ t('sidebar.logout') }}
         </Button>
       </SidebarGroup>
       <ConfirmModal
         :open="logoutConfirm"
-        title="Logout"
-        message="Are you sure you want to logout?"
+        :title="t('sidebar.logoutTitle')"
+        :message="t('sidebar.logoutMessage')"
         @cancel="logoutConfirm = false"
         @confirm="confirmLogout"
       />
@@ -189,6 +189,7 @@ import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 import { useGamificationStore } from '@/stores/gamification'
 import { useProjectsStore } from '@/stores/projects'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/atoms/ui/button'
 import ConfirmModal from '@/components/molecules/ConfirmModal.vue'
 import {
@@ -211,6 +212,8 @@ import type { Role } from '@/utils/constants'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
+const localeParam = computed(() => (route.params.locale as string | undefined))
 
 const authStore = useAuthStore()
 const gamificationStore = useGamificationStore()
@@ -253,28 +256,27 @@ interface NavItem {
   role?: Role
 }
 
-const nav: NavItem[] = [
-  { label: 'Dashboard', to: '/dashboard', icon: 'dashboard' },
-  { label: 'Epics', to: '/epics', icon: 'epics' },  
-  { label: 'Tickets', to: '/tickets', icon: 'tickets' },
-  
-  { label: 'Leaderboard', to: '/leaderboard', icon: 'leaderboard' },
-  { label: 'Profile', to: '/profile', icon: 'profile' },
-  { label: 'Admin', to: '/admin/users', icon: 'shield', role: 'admin' },
-]
+const nav = computed<NavItem[]>(() => [
+  { label: t('nav.dashboard'), to: '/dashboard', icon: 'dashboard' },
+  { label: t('nav.epics'), to: '/epics', icon: 'epics' },
+  { label: t('nav.tickets'), to: '/tickets', icon: 'tickets' },
+  { label: t('nav.leaderboard'), to: '/leaderboard', icon: 'leaderboard' },
+  { label: t('nav.profile'), to: '/profile', icon: 'profile' },
+  { label: t('nav.admin'), to: '/admin/users', icon: 'shield', role: 'admin' },
+])
 
 const mainNav = computed(() =>
-  nav.filter((item) => !item.role || currentUser.value?.role === item.role)
+  nav.value.filter((item) => !item.role || currentUser.value?.role === item.role)
 )
 
 // Dashboard saja
 const primaryNav = computed(() =>
-  mainNav.value.filter((item) => item.label === 'Dashboard')
+  mainNav.value.filter((item) => item.to === '/dashboard')
 )
 
 // Menu lain setelah Projects
 const secondaryNav = computed(() =>
-  mainNav.value.filter((item) => item.label !== 'Dashboard')
+  mainNav.value.filter((item) => item.to !== '/dashboard')
 )
 
 const highlightedProjects = computed(() =>
@@ -287,11 +289,11 @@ const highlightedProjects = computed(() =>
 const activeProjectId = computed(() => projects.value[0]?.id ?? null)
 
 const projectBonus = computed(() =>
-  projects.value.length >= 3 ? 'Hot streak' : 'Getting started'
+  projects.value.length >= 3 ? t('sidebar.projectHighlight') : t('sidebar.projectStart')
 )
 
 const streakLabel = computed(
-  () => `${projectBonus.value} • ${stats.value?.streak ?? '0'} days`
+  () => `${projectBonus.value} - ${stats.value?.streak ?? '0'} ${t('sidebar.streakLabel')}`
 )
 
 const initials = computed(() => {
@@ -321,7 +323,11 @@ const activeGradientStyle = {
 }
 const logoutConfirm = ref(false)
 
-const isActive = (path: string) => route.path === path
+const stripLocale = (path: string) => path.replace(/^\/(en|id)(?=\/|$)/, '')
+const isActive = (path: string) => {
+  const current = stripLocale(route.path)
+  return current === path || current.startsWith(`${path}/`)
+}
 
 const closeOnMobile = () => {
   if (isMobile.value) {
@@ -336,7 +342,8 @@ const navigateTo = (path: string) => {
     return
   }
 
-  router.push(path)
+  const target = localeParam.value ? { path: `/${localeParam.value}${path}` } : { path }
+  router.push(target)
   closeOnMobile()
 }
 
@@ -347,7 +354,7 @@ const handleLogout = () => {
 const confirmLogout = () => {
   logoutConfirm.value = false
   authStore.logout()
-  router.push('/login')
+  router.push(localeParam.value ? { path: `/${localeParam.value}/login` } : '/login')
   closeOnMobile()
 }
 

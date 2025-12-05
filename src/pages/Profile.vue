@@ -1,5 +1,11 @@
 ﻿<template>
-  <section v-if="currentUser" class="space-y-8">
+  <section v-if="pageLoading" class="space-y-8">
+    <PageHeroSkeleton />
+    <CardGridSkeleton :count="4" columns-class="lg:grid-cols-3" />
+    <CardGridSkeleton :count="2" columns-class="lg:grid-cols-2" />
+  </section>
+
+  <section v-else-if="currentUser" class="space-y-8">
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-20 top-10 h-56 w-56 rounded-full bg-white/15 blur-3xl"></div>
       <div class="pointer-events-none absolute -left-16 bottom-0 h-60 w-60 rounded-full bg-indigo-500/30 blur-3xl"></div>
@@ -15,7 +21,7 @@
             </span>
           </div>
           <div class="space-y-2">
-            <p class="text-xs uppercase tracking-[0.4em] text-white/70">Operator Profile</p>
+            <p class="text-xs uppercase tracking-[0.4em] text-white/70">{{ t('profile.title') }}</p>
             <h1 class="text-3xl font-semibold">{{ currentUser.name }}</h1>
             <p class="text-sm text-white/80">
               {{ formatRole(currentUser.role) }} / @{{ currentUser.username }}
@@ -24,15 +30,15 @@
         </div>
         <div class="grid gap-4 text-center sm:grid-cols-3">
           <div class="rounded-2xl border border-white/15 bg-white/5 p-4">
-            <p class="text-xs uppercase text-white/60">Level</p>
+            <p class="text-xs uppercase text-white/60">{{ t('sidebar.level') }}</p>
             <p class="text-3xl font-semibold">{{ stats?.level ?? 1 }}</p>
           </div>
           <div class="rounded-2xl border border-white/15 bg-white/5 p-4">
-            <p class="text-xs uppercase text-white/60">XP</p>
+            <p class="text-xs uppercase text-white/60">{{ t('sidebar.xp') }}</p>
             <p class="text-3xl font-semibold">{{ formatNumber(stats?.xp ?? 0) }}</p>
           </div>
           <div class="rounded-2xl border border-white/15 bg-white/5 p-4">
-            <p class="text-xs uppercase text-white/60">Tickets</p>
+            <p class="text-xs uppercase text-white/60">{{ t('nav.tickets') }}</p>
             <p class="text-3xl font-semibold">{{ formatNumber(stats?.tickets_closed_count ?? 0) }}</p>
           </div>
         </div>
@@ -43,22 +49,24 @@
       <div class="rounded-3xl border border-border bg-card p-6 shadow-lg lg:col-span-2">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Mission log</p>
-            <h2 class="text-2xl font-semibold text-foreground">Performance overview</h2>
+            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">{{ t('profile.missionLog') }}</p>
+            <h2 class="text-2xl font-semibold text-foreground">{{ t('profile.performanceOverview') }}</h2>
           </div>
-            <span class="text-xs uppercase text-muted-foreground">Streak {{ stats?.streak ?? 0 }} days</span>
+            <span class="text-xs uppercase text-muted-foreground">
+              {{ t('profile.streakDays', { days: stats?.streak ?? 0 }) }}
+            </span>
         </div>
         <div class="mt-6 space-y-6">
           <div class="rounded-2xl border border-muted bg-muted/50 p-4">
             <div class="flex items-center justify-between text-xs uppercase text-muted-foreground">
-              <span>XP progress</span>
+              <span>XP</span>
               <span class="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
                 {{ xpProgress }}%
               </span>
             </div>
             <div class="mt-3">
               <div class="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Level {{ stats?.level ?? 1 }}</span>
+                <span>{{ t('sidebar.level') }} {{ stats?.level ?? 1 }}</span>
                 <span>{{ stats?.xp ?? 0 }} / {{ stats?.nextLevelThreshold ?? 100 }} XP</span>
               </div>
               <div class="mt-2 h-2 rounded-full bg-slate-200">
@@ -72,20 +80,20 @@
           <div class="grid gap-4 md:grid-cols-3 text-center text-sm">
             <div class="rounded-2xl border border-border bg-white/80 p-4 shadow-sm">
               <p class="text-4xl font-semibold text-foreground">{{ focusMetric }}</p>
-              <p class="text-xs uppercase text-muted-foreground">XP pace</p>
+              <p class="text-xs uppercase text-muted-foreground">{{ t('profile.xpPace') }}</p>
             </div>
             <div class="rounded-2xl border border-border bg-white/80 p-4 shadow-sm">
               <p class="text-4xl font-semibold text-foreground">{{ nextBadge }}</p>
-              <p class="text-xs uppercase text-muted-foreground">Next badge</p>
+              <p class="text-xs uppercase text-muted-foreground">{{ t('profile.nextBadge') }}</p>
             </div>
             <div class="rounded-2xl border border-border bg-white/80 p-4 shadow-sm">
               <p class="text-4xl font-semibold text-foreground">{{ xpToNext }}</p>
-              <p class="text-xs uppercase text-muted-foreground">XP to level up</p>
+              <p class="text-xs uppercase text-muted-foreground">{{ t('profile.xpToLevelUp') }}</p>
             </div>
           </div>
 
           <div>
-            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Badges</p>
+            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">{{ t('profile.badges') }}</p>
             <div class="mt-4 flex flex-wrap gap-3">
               <span
                 v-for="badge in badgeList"
@@ -94,7 +102,7 @@
               >
                 {{ badge }}
               </span>
-              <p v-if="badgeList.length === 0" class="text-sm text-muted-foreground">No badges yet.</p>
+              <p v-if="badgeList.length === 0" class="text-sm text-muted-foreground">{{ t('profile.noBadges') }}</p>
             </div>
           </div>
         </div>
@@ -103,46 +111,58 @@
       <div class="rounded-3xl border border-border bg-card p-6 shadow-lg">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Profile</p>
-            <h2 class="text-xl font-semibold text-foreground">Edit details</h2>
+            <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">{{ t('profile.title') }}</p>
+            <h2 class="text-xl font-semibold text-foreground">{{ t('profile.editDetails') }}</h2>
           </div>
-          <span v-if="saved" class="text-xs text-emerald-600">Saved</span>
+          <span v-if="saved" class="text-xs text-emerald-600">{{ t('common.saved') }}</span>
         </div>
         <form class="mt-6 space-y-5 text-sm" @submit.prevent="save">
           <label class="block space-y-1">
-            <span class="text-xs uppercase text-muted-foreground">Name</span>
+            <span class="text-xs uppercase text-muted-foreground">{{ t('profile.name') }}</span>
             <input v-model="form.name" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" />
           </label>
           <label class="block space-y-1">
-            <span class="text-xs uppercase text-muted-foreground">Bio</span>
+            <span class="text-xs uppercase text-muted-foreground">{{ t('profile.bio') }}</span>
             <textarea v-model="form.bio" rows="4" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"></textarea>
+          </label>
+          <label class="block space-y-1">
+            <span class="text-xs uppercase text-muted-foreground">{{ t('common.language') }}</span>
+            <select
+              v-model="selectedLocale"
+              class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"
+              @change="handleLocaleChange"
+            >
+              <option v-for="opt in availableLocales" :key="opt" :value="opt">
+                {{ opt === 'en' ? t('common.english') : t('common.indonesian') }}
+              </option>
+            </select>
           </label>
           <Button
             type="submit"
             class="w-full border-0 bg-[linear-gradient(135deg,#0b1224,#10182f,#1c2650)] text-white shadow-md shadow-indigo-900/30 transition hover:brightness-110 hover:shadow-lg"
-          >
-            Save changes
+            >
+              {{ t('profile.saveChanges') }}
           </Button>
         </form>
         <div class="mt-8 space-y-3 border-t border-border pt-6">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Security</p>
-              <h3 class="text-lg font-semibold text-foreground">Change password</h3>
+              <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">{{ t('profile.security') }}</p>
+              <h3 class="text-lg font-semibold text-foreground">{{ t('profile.changePassword') }}</h3>
             </div>
-            <span v-if="passwordSaved" class="text-xs text-emerald-600">Updated</span>
+            <span v-if="passwordSaved" class="text-xs text-emerald-600">{{ t('common.saved') }}</span>
           </div>
           <form class="space-y-3 text-sm" @submit.prevent="submitPassword">
             <label class="block space-y-1">
-              <span class="text-xs uppercase text-muted-foreground">Current password</span>
+              <span class="text-xs uppercase text-muted-foreground">{{ t('profile.currentPassword') }}</span>
               <input v-model="pwd.old" type="password" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" required />
             </label>
             <label class="block space-y-1">
-              <span class="text-xs uppercase text-muted-foreground">New password</span>
+              <span class="text-xs uppercase text-muted-foreground">{{ t('profile.newPassword') }}</span>
               <input v-model="pwd.new1" type="password" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" required />
             </label>
             <label class="block space-y-1">
-              <span class="text-xs uppercase text-muted-foreground">Confirm new password</span>
+              <span class="text-xs uppercase text-muted-foreground">{{ t('profile.confirmPassword') }}</span>
               <input v-model="pwd.new2" type="password" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm" required />
             </label>
             <p v-if="pwdError" class="text-xs text-rose-600">{{ pwdError }}</p>
@@ -151,28 +171,40 @@
               class="w-full border-0 bg-[linear-gradient(135deg,#0b1224,#10182f,#1c2650)] text-white shadow-md shadow-indigo-900/30 transition hover:brightness-110 hover:shadow-lg disabled:opacity-50"
               :disabled="pwdSubmitting"
             >
-              {{ pwdSubmitting ? 'Updating...' : 'Update password' }}
+              {{ pwdSubmitting ? t('profile.updatingPassword') : t('profile.updatePassword') }}
             </Button>
           </form>
         </div>
       </div>
     </div>
   </section>
-  <p v-else class="text-slate-500">No user.</p>
+  <p v-else class="text-slate-500">{{ t('profile.noUser') }}</p>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { Button } from '@/components/atoms/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import { useUsersStore } from '@/stores/users'
 import { useGamificationStore } from '@/stores/gamification'
+import { supportedLocales, type SupportedLocale, setStoredLocale } from '@/i18n'
+import { PageHeroSkeleton, CardGridSkeleton } from '@/components/molecules/skeletons'
 
+const router = useRouter()
+const route = useRoute()
+const { t, locale } = useI18n()
 const auth = useAuthStore()
 const { currentUser } = storeToRefs(auth)
 const usersStore = useUsersStore()
 const gamification = useGamificationStore()
+const availableLocales = supportedLocales
+const selectedLocale = ref<SupportedLocale>(
+  (route.params.locale as SupportedLocale | undefined) ?? (locale.value as SupportedLocale)
+)
+const pageLoading = computed(() => gamification.loading || !currentUser.value)
 const saved = ref(false)
 const passwordSaved = ref(false)
 const pwdSubmitting = ref(false)
@@ -232,6 +264,25 @@ const numberFormatter = new Intl.NumberFormat('en-US')
 const formatNumber = (value = 0) => numberFormatter.format(value ?? 0)
 const formatRole = (role) => (role ? role.replace(/_/g, ' ') : '-')
 
+const handleLocaleChange = () => {
+  const nextLocale = selectedLocale.value
+  locale.value = nextLocale
+  setStoredLocale(nextLocale)
+  router.push({
+    name: (route.name as string) || 'dashboard',
+    params: { ...route.params, locale: nextLocale },
+    query: route.query,
+  })
+}
+
+watch(
+  () => route.params.locale,
+  (newLocale) => {
+    if (!newLocale) return
+    selectedLocale.value = (newLocale as string).toLowerCase() as SupportedLocale
+  }
+)
+
 const save = async () => {
   if (!currentUser.value) return
   try {
@@ -251,15 +302,15 @@ const submitPassword = async () => {
   if (!currentUser.value) return
   pwdError.value = ''
   if (!pwd.old || !pwd.new1 || !pwd.new2) {
-    pwdError.value = 'Please fill all fields'
+    pwdError.value = t('profile.passwordRequired')
     return
   }
   if (pwd.new1 !== pwd.new2) {
-    pwdError.value = 'New password and confirmation must match'
+    pwdError.value = t('profile.passwordMismatch')
     return
   }
   if (pwd.new1.length < 6) {
-    pwdError.value = 'Use at least 6 characters'
+    pwdError.value = t('profile.passwordLength')
     return
   }
   pwdSubmitting.value = true
@@ -271,7 +322,7 @@ const submitPassword = async () => {
     pwd.new2 = ''
     setTimeout(() => (passwordSaved.value = false), 2000)
   } catch (error) {
-    pwdError.value = error instanceof Error ? error.message : 'Failed to update password'
+    pwdError.value = error instanceof Error ? error.message : t('profile.errorPassword')
   } finally {
     pwdSubmitting.value = false
   }

@@ -1,21 +1,31 @@
 <template>
-  <section class="space-y-8">
+  <section v-if="pageLoading" class="space-y-8">
+    <PageHeroSkeleton />
+    <div class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+      <CardGridSkeleton :count="2" columns-class="grid-cols-1" />
+      <CardGridSkeleton :count="2" columns-class="grid-cols-1" />
+    </div>
+  </section>
+
+  <section v-else class="space-y-8">
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-6 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-20 -top-12 h-52 w-52 rounded-full bg-white/15 blur-3xl"></div>
       <div class="pointer-events-none absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-indigo-500/30 blur-3xl"></div>
       <div class="relative flex flex-wrap items-center justify-between gap-4">
         <div class="space-y-2">
-          <p class="text-xs uppercase tracking-[0.4em] text-white/60">Epics</p>
-          <h1 class="text-3xl font-semibold">Shape the roadmap</h1>
+          <p class="text-xs uppercase tracking-[0.4em] text-white/60">{{ t('epics.heroLabel') }}</p>
+          <h1 class="text-3xl font-semibold">{{ t('epics.heroTitle') }}</h1>
           <p class="text-sm text-white/70">
-            {{ epicsByProject.length }} epic{{ epicsByProject.length === 1 ? '' : 's' }} in {{ currentProject?.name ?? '...' }}
+            {{ t('epics.heroCount', { count: epicsByProject.length, project: currentProject?.name ?? '...' }) }}
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
           <select v-model="selectedProject" class="rounded-md border border-white bg-white px-10 py-2 text-sm text-black shadow-black inner">
             <option :value="project.id" v-for="project in projects" :key="project.id" class=" rounded-md  bg-white/30 text-black">{{ project.name }}</option>
           </select>
-          <button class="rounded-md border border-white/30 bg-white/15 px-3 py-2 text-sm text-white hover:bg-white/25" @click="fetchEpics">Refresh</button>
+          <button class="rounded-md border border-white/30 bg-white/15 px-3 py-2 text-sm text-white hover:bg-white/25" @click="fetchEpics">
+            {{ t('epics.refresh') }}
+          </button>
         </div>
       </div>
     </div>
@@ -25,53 +35,53 @@
         <div class="rounded-3xl border border-border bg-card p-5 shadow-card">
           <div class="flex items-center justify-between gap-3">
             <div>
-              <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Create epic</p>
-              <h2 class="text-lg font-semibold text-foreground">Define a new initiative</h2>
+              <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{{ t('epics.createLabel') }}</p>
+              <h2 class="text-lg font-semibold text-foreground">{{ t('epics.createTitle') }}</h2>
             </div>
-            <span class="text-xs text-muted-foreground">{{ currentProject?.name ?? 'Select a project' }}</span>
+            <span class="text-xs text-muted-foreground">{{ currentProject?.name ?? t('epics.selectProject') }}</span>
           </div>
-          <p v-if="!canManageEpics" class="text-xs text-rose-600">Hanya admin / project manager yang bisa membuat atau mengedit epics.</p>
+          <p v-if="!canManageEpics" class="text-xs text-rose-600">{{ t('epics.onlyAdmin') }}</p>
           <form class="mt-3 grid gap-3 md:grid-cols-2" @submit.prevent="handleCreate">
             <label class="space-y-1 md:col-span-2">
-              <span class="text-xs uppercase text-muted-foreground">Title <span class="text-rose-500">*</span></span>
-              <input v-model="form.title" required class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm" placeholder="Customer onboarding revamp" />
+              <span class="text-xs uppercase text-muted-foreground">{{ t('epics.form.title') }} <span class="text-rose-500">*</span></span>
+              <input v-model="form.title" required class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm" :placeholder="t('epics.form.placeholderTitle')" />
               <p v-if="errors.title" class="text-[11px] text-rose-600">{{ errors.title }}</p>
             </label>
             <label class="space-y-1 md:col-span-2">
-              <span class="text-xs uppercase text-muted-foreground">Description <span class="text-rose-500">*</span></span>
+              <span class="text-xs uppercase text-muted-foreground">{{ t('epics.form.description') }} <span class="text-rose-500">*</span></span>
               <textarea
                 v-model="form.description"
                 rows="2"
                 required
                 class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm"
-                placeholder="Goal, scope, definition of done"
+                :placeholder="t('epics.form.placeholderDesc')"
               ></textarea>
               <p v-if="errors.description" class="text-[11px] text-rose-600">{{ errors.description }}</p>
             </label>
             <label class="space-y-1">
-              <span class="text-xs uppercase text-muted-foreground">Status <span class="text-rose-500">*</span></span>
+              <span class="text-xs uppercase text-muted-foreground">{{ t('epics.form.status') }} <span class="text-rose-500">*</span></span>
               <select v-model="form.status" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm">
                 <option v-for="status in STATUS_OPTIONS" :key="status" :value="status">{{ status }}</option>
               </select>
               <p v-if="errors.status" class="text-[11px] text-rose-600">{{ errors.status }}</p>
             </label>
             <label class="space-y-1">
-              <span class="text-xs uppercase text-muted-foreground">Start</span>
+              <span class="text-xs uppercase text-muted-foreground">{{ t('epics.form.start') }}</span>
               <input type="date" v-model="form.startDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm" />
             </label>
             <label class="space-y-1">
-              <span class="text-xs uppercase text-muted-foreground">Due</span>
+              <span class="text-xs uppercase text-muted-foreground">{{ t('epics.form.due') }}</span>
               <input type="date" v-model="form.dueDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm" />
               <p v-if="errors.dates" class="text-[11px] text-rose-600">{{ errors.dates }}</p>
             </label>
             <div class="md:col-span-2 flex justify-end gap-2">
-              <button type="button" class="rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground" @click="resetForm">Clear</button>
+              <button type="button" class="rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground" @click="resetForm">{{ t('epics.form.clear') }}</button>
               <button
                 type="submit"
                 class="rounded-xl border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 px-4 py-2 text-sm text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110 disabled:opacity-50"
                 :disabled="!canManageEpics || !selectedProject || !form.title.trim()"
               >
-                {{ editingId ? 'Save changes' : 'Create' }}
+                {{ editingId ? t('epics.form.submitSave') : t('epics.form.submitCreate') }}
               </button>
             </div>
           </form>
@@ -81,10 +91,10 @@
         <div class="rounded-3xl border border-border bg-card p-5 shadow-card">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Epics</p>
-              <h2 class="text-lg font-semibold text-foreground">Timeline</h2>
+              <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{{ t('epics.timelineLabel') }}</p>
+              <h2 class="text-lg font-semibold text-foreground">{{ t('epics.timelineTitle') }}</h2>
             </div>
-            <p class="text-xs text-muted-foreground">{{ epicsByProject.length }} items</p>
+            <p class="text-xs text-muted-foreground">{{ t('epics.itemsLabel', { count: epicsByProject.length }) }}</p>
           </div>
           <div class="mt-3 grid gap-4 md:grid-cols-2">
             <button
@@ -97,7 +107,7 @@
               <div class="flex items-start justify-between gap-2">
                 <div>
                   <p class="text-sm font-semibold text-foreground">{{ epic.title }}</p>
-                  <p class="text-xs text-muted-foreground">{{ epic.description || 'No description' }}</p>
+                  <p class="text-xs text-muted-foreground">{{ epic.description || t('epics.noDescription') }}</p>
                 </div>
                 <div class="flex flex-col items-end gap-2">
                   <span class="text-[10px] rounded-full border px-2 py-0.5 uppercase text-muted-foreground">{{ epic.status }}</span>
@@ -107,14 +117,14 @@
                       class="rounded-full border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-slate-400"
                       @click.stop="startEdit(epic)"
                     >
-                      Edit
+                      {{ t('epics.edit') }}
                     </button>
                     <button
                       type="button"
                       class="rounded-full border border-rose-300 px-2 py-0.5 text-[10px] text-rose-600 hover:bg-rose-50"
                       @click.stop="confirmDelete(epic.id)"
                     >
-                      Delete
+                      {{ t('epics.delete') }}
                     </button>
                   </div>
                 </div>
@@ -123,40 +133,38 @@
                 <span class="block h-full rounded-full bg-indigo-500" :style="{ width: progress(epic) + '%' }"></span>
               </div>
               <div class="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                <span>Start: {{ dateLabel(epic.startDate) }}</span>
-                <span>Due: {{ dateLabel(epic.dueDate) }}</span>
+                <span>{{ t('epics.startLabel', { date: dateLabel(epic.startDate) }) }}</span>
+                <span>{{ t('epics.dueLabel', { date: dateLabel(epic.dueDate) }) }}</span>
               </div>
-              <p class="mt-1 text-xs text-muted-foreground">{{ epic.doneCount ?? 0 }}/{{ epic.totalCount ?? 0 }} done</p>
+              <p class="mt-1 text-xs text-muted-foreground">{{ t('epics.progress', { done: epic.doneCount ?? 0, total: epic.totalCount ?? 0 }) }}</p>
             </button>
           </div>
-          <p v-if="!epicsByProject.length" class="text-sm text-muted-foreground">No epics for this project.</p>
+          <p v-if="!epicsByProject.length" class="text-sm text-muted-foreground">{{ t('epics.emptyEpics') }}</p>
         </div>
       </div>
 
       <div class="space-y-4">
         <div class="rounded-3xl border border-border bg-card p-5 shadow-card">
-          <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Summary</p>
+          <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{{ t('epics.summaryTitle') }}</p>
           <div class="mt-3 space-y-2 text-sm text-foreground">
             <div class="flex items-center justify-between">
-              <span>Total epics</span>
+              <span>{{ t('epics.summary.total') }}</span>
               <span class="font-semibold">{{ epicsByProject.length }}</span>
             </div>
             <div class="flex items-center justify-between">
-              <span>In progress</span>
+              <span>{{ t('epics.summary.inProgress') }}</span>
               <span class="font-semibold">{{ epicsByProject.filter((e) => e.status === 'in_progress').length }}</span>
             </div>
             <div class="flex items-center justify-between">
-              <span>Done</span>
+              <span>{{ t('epics.summary.done') }}</span>
               <span class="font-semibold">{{ epicsByProject.filter((e) => e.status === 'done').length }}</span>
             </div>
           </div>
         </div>
         <div class="rounded-3xl border border-border bg-card p-5 shadow-card text-sm text-muted-foreground">
-          <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Tips</p>
+          <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{{ t('epics.tipsTitle') }}</p>
           <ul class="mt-2 list-disc space-y-1 pl-4">
-            <li>Gunakan backlog untuk menampung ide sebelum masuk sprint.</li>
-            <li>Isi due date untuk memunculkan reminder.</li>
-            <li>Epic progress dihitung dari tiket anak dengan status done.</li>
+            <li v-for="tip in tips" :key="tip">{{ tip }}</li>
           </ul>
         </div>
       </div>
@@ -164,8 +172,8 @@
   </section>
   <ConfirmModal
     :open="Boolean(confirmingId)"
-    title="Delete epic"
-    message="Tickets will be unlinked from this epic. Continue?"
+    :title="t('epics.confirmDeleteTitle')"
+    :message="t('epics.confirmDeleteMsg')"
     @cancel="confirmingId = null"
     @confirm="deleteEpic"
   />
@@ -181,7 +189,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useProjectsStore } from '@/stores/projects'
 import { useEpicsStore } from '@/stores/epics'
@@ -189,8 +197,14 @@ import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/utils/helpers'
 import ConfirmModal from '@/components/molecules/ConfirmModal.vue'
 import { TICKET_STATUSES, type TicketStatus } from '@/utils/constants'
+import { PageHeroSkeleton, CardGridSkeleton } from '@/components/molecules/skeletons'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
+const route = useRoute()
+const { t } = useI18n()
+const localeParam = computed(() => route.params.locale as string | undefined)
+const localePath = (path: string) => (localeParam.value ? `/${localeParam.value}${path}` : path)
 const projectsStore = useProjectsStore()
 const { projects } = storeToRefs(projectsStore)
 const epicsStore = useEpicsStore()
@@ -202,6 +216,7 @@ const EPICS_PROJECT_KEY = 'ttm_epics_project'
 const selectedProject = ref<string>('')
 const errorMsg = ref('')
 const loading = ref(false)
+const pageLoading = computed(() => loading.value)
 const editingId = ref<string | null>(null)
 const confirmingId = ref<string | null>(null)
 const toast = reactive({ open: false, message: '', variant: 'success' as 'success' | 'error' })
@@ -224,6 +239,7 @@ const errors = reactive<{ title?: string; description?: string; status?: string;
 const epicsByProject = computed(() => epicsStore.byProject(selectedProject.value))
 const currentProject = computed(() => projects.value.find((p) => p.id === selectedProject.value))
 const canManageEpics = computed(() => ['admin', 'project_manager'].includes(auth.currentUser?.role as string))
+const tips = computed(() => t('epics.tips') as unknown as string[])
 
 const progress = (epic: any) => {
   const done = epic.doneCount ?? 0
@@ -235,7 +251,7 @@ const progress = (epic: any) => {
 const dateLabel = (value?: string) => (value ? formatDate(value) : '-')
 
 const goDetail = (id: string) => {
-  router.push({ name: 'epic-detail', params: { id } })
+  router.push({ name: 'epic-detail', params: { locale: localeParam.value, id } })
 }
 
 const startEdit = (epic: any) => {
@@ -300,19 +316,19 @@ const validateForm = () => {
   errors.dates = undefined
 
   if (!form.title.trim()) {
-    errors.title = 'Title wajib diisi.'
+    errors.title = t('epics.errors.title')
   }
 
   if (!form.description.trim()) {
-    errors.description = 'Description wajib diisi.'
+    errors.description = t('epics.errors.description')
   }
 
   if (!STATUS_OPTIONS.includes(form.status)) {
-    errors.status = 'Status tidak valid.'
+    errors.status = t('epics.errors.status')
   }
 
   if (form.startDate && form.dueDate && new Date(form.startDate) > new Date(form.dueDate)) {
-    errors.dates = 'Start date harus lebih awal dari due date.'
+    errors.dates = t('epics.errors.dates')
   }
 
   return !errors.title && !errors.description && !errors.status && !errors.dates
@@ -320,11 +336,11 @@ const validateForm = () => {
 
 const handleCreate = async () => {
   if (!selectedProject.value) {
-    errorMsg.value = 'Select a project first.'
+    errorMsg.value = t('epics.errors.selectProject')
     return
   }
   if (!validateForm()) {
-    errorMsg.value = errors.title || errors.status || errors.dates || 'Perbaiki input.'
+    errorMsg.value = errors.title || errors.status || errors.dates || t('epics.errors.fixInput')
     return
   }
   const startDateIso = form.startDate ? `${form.startDate}T00:00:00Z` : undefined
@@ -349,7 +365,7 @@ const handleCreate = async () => {
     }
     resetForm()
   } catch (error) {
-    errorMsg.value = error instanceof Error ? error.message : 'Failed to create epic'
+    errorMsg.value = error instanceof Error ? error.message : t('epics.toastCreateFail')
   }
 }
 

@@ -1,5 +1,10 @@
 <template>
-  <section class="space-y-8">
+  <section v-if="pageLoading" class="space-y-8">
+    <PageHeroSkeleton />
+    <CardGridSkeleton :count="3" columns-class="lg:grid-cols-[1fr_0.45fr]" />
+  </section>
+
+  <section v-else class="space-y-8">
     <div v-if="notFound" class="rounded-3xl border border-rose-200 bg-rose-50 p-6 text-rose-700 shadow">
       Epic tidak ditemukan atau kamu tidak punya akses.
       <RouterLink to="/epics" class="ml-2 underline">Kembali ke daftar epics</RouterLink>
@@ -110,6 +115,7 @@ import { storeToRefs } from 'pinia'
 import { useEpicsStore } from '@/stores/epics'
 import { useTicketsStore } from '@/stores/tickets'
 import { formatDate } from '@/utils/helpers'
+import { PageHeroSkeleton, CardGridSkeleton } from '@/components/molecules/skeletons'
 
 const route = useRoute()
 const epicId = route.params.id as string
@@ -120,6 +126,8 @@ const { tickets } = storeToRefs(ticketsStore)
 
 const epic = ref<any>(null)
 const notFound = ref(false)
+const loadingEpic = ref(false)
+const pageLoading = computed(() => loadingEpic.value)
 
 const epicTickets = computed(() => tickets.value.filter((t) => t.epicId === epicId))
 const doneTickets = computed(() => epicTickets.value.filter((t) => t.status === 'done').length)
@@ -136,15 +144,20 @@ const progress = computed(() => {
 const dateLabel = (value?: string) => (value ? formatDate(value) : '-')
 
 const load = async () => {
-  await Promise.allSettled([
-    ticketsStore.fetchTicketsByEpic(epicId),
-    ticketsStore.fetchTickets(true),
-    epicsStore.fetchEpic(epicId),
-  ])
-  const epicData = epicsStore.items.find((e) => e.id === epicId) || null
-  epic.value = epicData
-  if (!epicData) {
-    notFound.value = true
+  loadingEpic.value = true
+  try {
+    await Promise.allSettled([
+      ticketsStore.fetchTicketsByEpic(epicId),
+      ticketsStore.fetchTickets(true),
+      epicsStore.fetchEpic(epicId),
+    ])
+    const epicData = epicsStore.items.find((e) => e.id === epicId) || null
+    epic.value = epicData
+    if (!epicData) {
+      notFound.value = true
+    }
+  } finally {
+    loadingEpic.value = false
   }
 }
 

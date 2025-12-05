@@ -5,12 +5,12 @@
         <h3 class="text-lg font-semibold text-slate-900">{{ title }}</h3>
         <p class="mt-2 text-slate-500">{{ message }}</p>
         <div class="mt-4 flex justify-end gap-2">
-          <button class="rounded-md px-4 py-2 text-slate-400 hover:text-slate-900" @click="$emit('cancel')">Cancel</button>
+          <button class="rounded-md px-4 py-2 text-slate-400 hover:text-slate-900" @click="$emit('cancel')">{{ t('common.cancel') }}</button>
           <button
             class="rounded-md border-0 bg-[linear-gradient(135deg,#0b1224,#10182f,#1c2650)] px-4 py-2 text-white shadow-md shadow-indigo-900/30 transition hover:brightness-110 hover:shadow-lg"
             @click="$emit('confirm')"
           >
-            Confirm
+            {{ t('common.confirm') }}
           </button>
         </div>
       </div>
@@ -20,6 +20,7 @@
 
 <script setup lang="ts">
 import { onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   open: Boolean,
@@ -47,6 +48,8 @@ watch(
 )
 
 onUnmounted(() => toggleBodyBlur(false))
+
+const { t } = useI18n()
 </script>
 
 <style>

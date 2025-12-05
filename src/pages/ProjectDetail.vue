@@ -1,5 +1,16 @@
 <template>
-  <section v-if="project" class="space-y-8">
+  <section v-if="pageLoading" class="space-y-8">
+    <PageHeroSkeleton />
+    <div class="grid gap-6 lg:grid-cols-2 xl:grid-cols-[300px_1fr_320px]">
+      <CardGridSkeleton :count="2" columns-class="grid-cols-1" />
+      <div class="space-y-4 lg:col-span-1 xl:col-span-2">
+        <BoardSkeleton />
+        <CardGridSkeleton :count="3" columns-class="grid-cols-1" />
+      </div>
+    </div>
+  </section>
+
+  <section v-else-if="project" class="space-y-8">
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-16 top-8 h-56 w-56 rounded-full bg-white/10 blur-3xl"></div>
       <div class="pointer-events-none absolute -left-20 bottom-0 h-48 w-48 rounded-full bg-indigo-500/30 blur-3xl"></div>
@@ -15,38 +26,38 @@
           </div>
           <div class="flex flex-wrap gap-4 text-sm">
             <div class="min-w-[120px]">
-              <p class="text-xs uppercase text-white/60">Members</p>
+              <p class="text-xs uppercase text-white/60">{{ t('projectDetail.members') }}</p>
               <p class="text-3xl font-semibold">{{ memberCount }}</p>
             </div>
             <div class="min-w-[120px]">
-              <p class="text-xs uppercase text-white/60">Tickets</p>
+              <p class="text-xs uppercase text-white/60">{{ t('projectDetail.tickets') }}</p>
               <p class="text-3xl font-semibold">{{ totalTickets }}</p>
             </div>
             <div class="min-w-[120px]">
-              <p class="text-xs uppercase text-white/60">Open</p>
+              <p class="text-xs uppercase text-white/60">{{ t('projectDetail.open') }}</p>
               <p class="text-3xl font-semibold">{{ openTickets }}</p>
             </div>
           </div>
         </div>
         <div class="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-3">
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
-            <p class="text-xs uppercase text-white/60">Last activity</p>
-            <p class="text-lg font-semibold">{{ lastActivity?.text ?? 'Belum ada aktivitas' }}</p>
+            <p class="text-xs uppercase text-white/60">{{ t('projectDetail.lastActivity') }}</p>
+            <p class="text-lg font-semibold">{{ lastActivity?.text ?? t('projectDetail.noActivity') }}</p>
             <p class="text-xs text-white/70">{{ formatDateTime(lastActivity?.timestamp) }}</p>
           </div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
-            <p class="text-xs uppercase text-white/60">Invites</p>
+            <p class="text-xs uppercase text-white/60">{{ t('projectDetail.invites') }}</p>
             <p class="text-3xl font-semibold">{{ project.invites.length }}</p>
-            <p class="text-xs text-white/70">Aktif saat ini</p>
+            <p class="text-xs text-white/70">{{ t('projectDetail.invitesActive') }}</p>
           </div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
-            <p class="text-xs uppercase text-white/60">Aksi</p>
+            <p class="text-xs uppercase text-white/60">{{ t('projectDetail.actions') }}</p>
             <div class="mt-3 flex flex-wrap gap-2">
               <Button variant="secondary" size="sm" class="border border-white/30 bg-white/15 text-white hover:bg-white/25" @click="showInvite = true">
-                Invite
+                {{ t('projectDetail.invite') }}
               </Button>
-              <RouterLink to="/tickets">
-                <Button variant="ghost" size="sm" class="text-white hover:bg-white/10 hover:text-white">Tiket</Button>
+              <RouterLink :to="localePath('/tickets')">
+                <Button variant="ghost" size="sm" class="text-white hover:bg-white/10 hover:text-white">{{ t('projectDetail.ticketsBtn') }}</Button>
               </RouterLink>
               <Button
                 v-if="canLeaveProject"
@@ -55,7 +66,7 @@
                 class="bg-rose-500 text-white hover:bg-rose-600"
                 @click="confirmLeaveProject"
               >
-                Leave
+                {{ t('projectDetail.leave') }}
               </Button>
             </div>
           </div>
@@ -68,10 +79,10 @@
         <div class="rounded-3xl border border-border bg-card p-5">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Squad</p>
-              <h2 class="text-lg font-semibold text-foreground">Anggota</h2>
+              <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{{ t('projectDetail.squad') }}</p>
+              <h2 class="text-lg font-semibold text-foreground">{{ t('projectDetail.membersTitle') }}</h2>
             </div>
-            <Button variant="ghost" size="sm" class="text-muted-foreground" @click="showInvite = true">Invite</Button>
+            <Button variant="ghost" size="sm" class="text-muted-foreground" @click="showInvite = true">{{ t('projectDetail.invite') }}</Button>
           </div>
           <div class="mt-4 space-y-3">
             <div
@@ -85,18 +96,18 @@
               </div>
               <span class="text-xs text-muted-foreground">{{ statsBadge(member) }}</span>
             </div>
-            <p v-if="project.members.length === 0" class="text-sm text-muted-foreground">Belum ada anggota.</p>
+            <p v-if="project.members.length === 0" class="text-sm text-muted-foreground">{{ t('projectDetail.noMembers') }}</p>
           </div>
         </div>
 
         <div class="rounded-3xl border border-border bg-card p-5 text-sm">
-          <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Active invites</p>
+          <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{{ t('projectDetail.activeInvites') }}</p>
           <ul class="mt-3 space-y-2">
             <li v-for="invite in project.invites" :key="invite.code" class="flex items-center justify-between rounded-2xl border border-muted bg-muted/40 px-3 py-2">
               <span class="font-mono text-foreground">{{ invite.code }}</span>
               <span class="text-xs text-muted-foreground">{{ invite.uses }}/{{ invite.maxUses }}</span>
             </li>
-            <li v-if="project.invites.length === 0" class="text-xs text-muted-foreground">Belum ada kode.</li>
+            <li v-if="project.invites.length === 0" class="text-xs text-muted-foreground">{{ t('projectDetail.noCodes') }}</li>
           </ul>
         </div>
       </div>
@@ -104,14 +115,14 @@
       <div class="space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Board</p>
-            <h2 class="text-xl font-semibold text-foreground">Ticket pipeline</h2>
+            <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{{ t('projectDetail.board') }}</p>
+            <h2 class="text-xl font-semibold text-foreground">{{ t('projectDetail.pipeline') }}</h2>
           </div>
           <div class="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <p>{{ totalTickets }} tickets · {{ openTickets }} open</p>
+            <p>{{ t('projectDetail.stats', { total: totalTickets, open: openTickets }) }}</p>
             <input
               v-model="searchTerm"
-              placeholder="Search tickets"
+              :placeholder="t('projectDetail.searchPlaceholder')"
               class="h-9 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
               @input="refreshTickets"
             />
@@ -138,35 +149,35 @@
                 <p class="font-semibold text-foreground">{{ ticket.title }}</p>
                 <p class="text-xs text-muted-foreground capitalize">{{ ticket.priority }} / {{ ticket.type }}</p>
                 <p class="text-xs text-muted-foreground">
-                  Assignee: <span class="font-medium text-foreground">{{ assigneeLabel(ticket) }}</span>
+                  {{ t('projectDetail.assignee') }}: <span class="font-medium text-foreground">{{ assigneeLabel(ticket) }}</span>
                 </p>
                 <p v-if="ticket.epicTitle" class="mt-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
-                  Epic: {{ ticket.epicTitle }}
+                  {{ t('projectDetail.epic') }}: {{ ticket.epicTitle }}
                 </p>
-                <button class="mt-2 text-xs text-primary underline" @click="openTicket(ticket.id)">Open ticket</button>
+                <button class="mt-2 text-xs text-primary underline" @click="openTicket(ticket.id)">{{ t('projectDetail.openTicket') }}</button>
               </article>
-              <p v-if="ticketsByStatus(status.value).length === 0" class="text-xs text-muted-foreground">Belum ada tiket.</p>
+              <p v-if="ticketsByStatus(status.value).length === 0" class="text-xs text-muted-foreground">{{ t('projectDetail.emptyColumn') }}</p>
             </div>
           </div>
         </div>
 
         <div class="flex justify-center">
           <Button v-if="ticketsNextCursor" :disabled="ticketsLoadingMore" variant="outline" size="sm" @click="loadMoreTickets">
-            {{ ticketsLoadingMore ? 'Loading...' : 'Load more tickets' }}
+            {{ ticketsLoadingMore ? t('projectDetail.loading') : t('projectDetail.loadMoreTickets') }}
           </Button>
         </div>
       </div>
 
       <div class="space-y-4">
         <div class="rounded-3xl border border-border bg-card p-5">
-          <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Activity</p>
+          <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{{ t('projectDetail.activity') }}</p>
           <div class="mt-4 max-h-[340px] overflow-y-auto rounded-2xl border border-muted/60 bg-muted/20">
             <ul class="divide-y divide-muted/60">
               <li v-for="item in project.activity" :key="item.id" class="p-3 text-sm">
                 <p class="font-semibold text-foreground">{{ item.text }}</p>
                 <p class="text-xs text-muted-foreground">{{ formatDateTime(item.timestamp) }}</p>
               </li>
-              <li v-if="project.activity.length === 0" class="p-3 text-sm text-muted-foreground">Belum ada aktivitas.</li>
+              <li v-if="project.activity.length === 0" class="p-3 text-sm text-muted-foreground">{{ t('projectDetail.activityEmpty') }}</li>
             </ul>
             <div class="p-3 text-center">
               <Button
@@ -176,7 +187,7 @@
                 size="sm"
                 @click="loadMoreActivity"
               >
-                {{ loadingActivity ? 'Loading...' : 'Load more activity' }}
+                {{ loadingActivity ? t('projectDetail.loading') : t('projectDetail.loadMoreActivity') }}
               </Button>
             </div>
           </div>
@@ -186,23 +197,23 @@
 
     <InviteModal :open="showInvite" :invite-code="latestInvite" @close="showInvite = false" @generate="generateInvite" />
   </section>
-  <p v-else class="text-slate-500">Project not found.</p>
+  <p v-else class="text-slate-500">{{ t('projectDetail.notFound') }}</p>
 
   <div v-if="showLeaveConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur">
     <div class="w-full max-w-md rounded-3xl border border-border bg-card p-6 text-sm shadow-2xl">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">Leave</p>
+          <p class="text-xs uppercase tracking-[0.4em] text-muted-foreground">{{ t('projectDetail.leaveConfirmTitle') }}</p>
           <h2 class="text-xl font-semibold text-foreground">{{ project?.name }}</h2>
         </div>
-        <button class="text-sm text-muted-foreground" @click="cancelLeaveProject">Close</button>
+        <button class="text-sm text-muted-foreground" @click="cancelLeaveProject">{{ t('common.close') }}</button>
       </div>
       <p class="mt-4 text-sm text-muted-foreground">
-        Are you sure you want to leave this project? You will lose access until invited again.
+        {{ t('projectDetail.leaveConfirmMsg') }}
       </p>
       <div class="mt-6 flex justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" class="text-muted-foreground" @click="cancelLeaveProject">Cancel</Button>
-        <Button type="button" variant="destructive" size="sm" @click="leaveProject">Leave project</Button>
+        <Button type="button" variant="ghost" size="sm" class="text-muted-foreground" @click="cancelLeaveProject">{{ t('projectDetail.leaveCancel') }}</Button>
+        <Button type="button" variant="destructive" size="sm" @click="leaveProject">{{ t('projectDetail.leaveAction') }}</Button>
       </div>
     </div>
   </div>
@@ -224,17 +235,23 @@ import { formatDateTime } from '@/utils/helpers'
 import { useEpicsStore } from '@/stores/epics'
 import { TICKET_STATUSES, type TicketStatus } from '@/utils/constants'
 import type { ProjectInvitePayload, ProjectMember, Ticket } from '@/types/models'
+import { PageHeroSkeleton, BoardSkeleton, CardGridSkeleton } from '@/components/molecules/skeletons'
+import { useI18n } from 'vue-i18n'
 
 defineOptions({ inheritAttrs: false })
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
+const localeParam = computed(() => route.params.locale as string | undefined)
+const localePath = (path: string) => (localeParam.value ? `/${localeParam.value}${path}` : path)
 const projectsStore = useProjectsStore()
 const ticketsStore = useTicketsStore()
 const usersStore = useUsersStore()
 const gamificationStore = useGamificationStore()
 const epicsStore = useEpicsStore()
 const { nextCursor: ticketsNextCursor, loadingMore: ticketsLoadingMore } = storeToRefs(ticketsStore)
+const loadingProject = ref(false)
 const showInvite = ref(false)
 const showLeaveConfirm = ref(false)
 const loadingActivity = ref(false)
@@ -244,19 +261,20 @@ const auth = useAuthStore()
 
 const projectId = computed(() => route.params.id as string)
 const project = computed(() => projectsStore.getById(projectId.value))
+const pageLoading = computed(() => loadingProject.value)
 const searchTerm = ref('')
 const isMember = computed(() => {
   if (!auth.currentUser || !project.value) return false
   return project.value.members.some((member) => member.id === auth.currentUser?.id)
 })
 const canLeaveProject = computed(() => isMember.value)
-const statuses: Array<{ label: string; value: TicketStatus }> = [
-  { label: 'Backlog', value: 'backlog' },
-  { label: 'Todo', value: 'todo' },
-  { label: 'In Progress', value: 'in_progress' },
-  { label: 'Review', value: 'review' },
-  { label: 'Done', value: 'done' },
-]
+const statuses = computed<Array<{ label: string; value: TicketStatus }>>(() => [
+  { label: t('projectDetail.column.backlog'), value: 'backlog' },
+  { label: t('projectDetail.column.todo'), value: 'todo' },
+  { label: t('projectDetail.column.inProgress'), value: 'in_progress' },
+  { label: t('projectDetail.column.review'), value: 'review' },
+  { label: t('projectDetail.column.done'), value: 'done' },
+])
 
 const ticketsByStatus = (status: TicketStatus) => {
   const boardIds = project.value?.board?.[status] ?? []
@@ -315,7 +333,7 @@ const handleDrop = async (evt: SortableEvent) => {
   await ticketsStore.updateTicketStatus(ticketId, toStatus)
 }
 
-const openTicket = (ticketId: string) => router.push(`/tickets/${ticketId}`)
+const openTicket = (ticketId: string) => router.push(localePath(`/tickets/${ticketId}`))
 
 watch(
   () => project.value?.board,
@@ -327,6 +345,7 @@ watch(
 
 const loadProject = async () => {
   if (!projectId.value) return
+  loadingProject.value = true
   try {
     await projectsStore.fetchProject(projectId.value)
     await ticketsStore.fetchTicketsWithFilters({
@@ -337,6 +356,8 @@ const loadProject = async () => {
     await epicsStore.fetchByProject(projectId.value)
   } catch (error) {
     console.error('Failed to load project', error)
+  } finally {
+    loadingProject.value = false
   }
 }
 
@@ -386,19 +407,19 @@ const latestInvite = ref('')
 const resolveUser = (id: string) => usersStore.getById(id)
 
 const memberCount = computed(() => project.value?.members?.length ?? 0)
-const totalTickets = computed(() => statuses.reduce((sum, status) => sum + ticketsByStatus(status.value).length, 0))
+const totalTickets = computed(() => statuses.value.reduce((sum, status) => sum + ticketsByStatus(status.value).length, 0))
 const openTickets = computed(() =>
-  statuses.filter((status) => status.value !== 'done').reduce((sum, status) => sum + ticketsByStatus(status.value).length, 0)
+  statuses.value.filter((status) => status.value !== 'done').reduce((sum, status) => sum + ticketsByStatus(status.value).length, 0)
 )
 const lastActivity = computed(() => project.value?.activity?.[0] ?? null)
 const activityNextCursor = computed(() => project.value?.activityNextCursor ?? null)
-const projectStatusLabel = computed(() => project.value?.status ?? 'Active')
+const projectStatusLabel = computed(() => project.value?.status ?? t('projectDetail.statusActive'))
 const boardHealth = computed(() => {
-  if (!totalTickets.value) return 'No tickets'
+  if (!totalTickets.value) return t('projectDetail.boardHealth.none')
   const ratio = openTickets.value / totalTickets.value
-  if (ratio > 0.75) return 'High load'
-  if (ratio > 0.4) return 'Balanced'
-  return 'Chill'
+  if (ratio > 0.75) return t('projectDetail.boardHealth.high')
+  if (ratio > 0.4) return t('projectDetail.boardHealth.balanced')
+  return t('projectDetail.boardHealth.chill')
 })
 const statsBadge = (member: ProjectMember) => (member.role === 'admin' ? 'Owner' : 'Member')
 const resolveEpicTitle = (epicId: string) => {

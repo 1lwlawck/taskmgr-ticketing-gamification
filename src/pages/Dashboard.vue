@@ -1,47 +1,76 @@
 <template>
-  <section class="space-y-8">
+  <section v-if="pageLoading" class="space-y-8">
+    <PageHeroSkeleton />
+    <StatCardsSkeleton />
+    <div class="grid gap-6 lg:grid-cols-3">
+      <div class="lg:col-span-2 space-y-4">
+        <CardGridSkeleton :count="4" columns-class="sm:grid-cols-1 md:grid-cols-2" />
+        <div class="rounded-3xl border border-border bg-card p-6 shadow-card">
+          <Skeleton class="h-6 w-40 rounded-md bg-slate-200" />
+          <Skeleton class="mt-4 h-48 w-full rounded-xl bg-slate-100" />
+        </div>
+      </div>
+      <CardGridSkeleton :count="3" columns-class="grid-cols-1" />
+    </div>
+    <CardGridSkeleton :count="4" columns-class="sm:grid-cols-2" />
+    <div class="grid gap-6 lg:grid-cols-2">
+      <CardGridSkeleton :count="3" columns-class="grid-cols-1" />
+      <CardGridSkeleton :count="4" columns-class="sm:grid-cols-2 md:grid-cols-4" />
+    </div>
+    <TableSkeleton :columns="5" :rows="5" />
+  </section>
+
+  <section v-else class="space-y-8">
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-24 top-6 h-56 w-56 rounded-full bg-white/10 blur-3xl"></div>
       <div class="pointer-events-none absolute -left-10 -bottom-12 h-48 w-48 rounded-full bg-indigo-500/30 blur-3xl"></div>
       <div class="relative flex flex-col gap-6 p-6 sm:gap-8 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
         <div class="space-y-6">
           <div class="space-y-2">
-            <p class="text-xs uppercase tracking-[0.4em] text-white/60">Mission control</p>
-            <h1 class="text-2xl font-semibold sm:text-3xl">Stay sharp, {{ currentUser?.name ?? 'Operator' }}</h1>
+            <p class="text-xs uppercase tracking-[0.4em] text-white/60">{{ t('dashboard.heroLabel') }}</p>
+            <h1 class="text-2xl font-semibold sm:text-3xl">
+              {{ t('dashboard.heroTitle', { name: currentUser?.name ?? t('sidebar.defaultName') }) }}
+            </h1>
             <p class="text-sm text-white/70">
-              You're {{ xpProgress }}% toward level {{ (stats?.level ?? 1) + 1 }}. Keep pushing to secure the {{ levelBadge }} badge.
+              {{
+                t('dashboard.heroSubtitle', {
+                  progress: xpProgress,
+                  nextLevel: (stats?.level ?? 1) + 1,
+                  badge: levelBadge,
+                })
+              }}
             </p>
           </div>
           <div class="flex flex-wrap gap-4 sm:gap-6 text-sm">
             <div class="min-w-[120px]">
-            <p class="text-xs uppercase text-white/60">Current level</p>
+            <p class="text-xs uppercase text-white/60">{{ t('dashboard.statCurrentLevel') }}</p>
             <p class="text-3xl font-semibold">{{ stats?.level ?? 1 }}</p>
             </div>
             <div class="min-w-[120px]">
-              <p class="text-xs uppercase text-white/60">Badge</p>
+              <p class="text-xs uppercase text-white/60">{{ t('dashboard.statBadge') }}</p>
               <p class="text-lg font-medium">{{ levelBadge }}</p>
             </div>
             <div class="min-w-[140px]">
-              <p class="text-xs uppercase text-white/60">Next unlock</p>
-              <p class="text-lg font-medium">{{ xpToNext }} XP to go</p>
+              <p class="text-xs uppercase text-white/60">{{ t('dashboard.statNextUnlock') }}</p>
+              <p class="text-lg font-medium">{{ t('dashboard.statNextUnlockSuffix', { xp: xpToNext }) }}</p>
             </div>
           </div>
           <div class="flex flex-wrap gap-3 sm:flex-row">
-            <RouterLink to="/tickets">
+            <RouterLink :to="localePath('/tickets')">
               <Button variant="secondary" size="sm" class="border border-white/20 bg-white/10 text-white hover:bg-white/20">
-                Review tickets
+                {{ t('dashboard.btnReviewTickets') }}
               </Button>
             </RouterLink>
-            <RouterLink to="/projects">
+            <RouterLink :to="localePath('/projects')">
               <Button variant="ghost" size="sm" class="text-white hover:bg-white/10 hover:text-white">
-                Jump to projects
+                {{ t('dashboard.btnJumpProjects') }}
               </Button>
             </RouterLink>
           </div>
         </div>
         <div class="w-full max-w-md rounded-md border border-white/15 bg-white/5 p-5 shadow-lg backdrop-blur">
           <div class="mb-3 flex items-center justify-between text-sm text-white/70">
-            <span>XP progress</span>
+            <span>XP</span>
             <span>{{ stats?.xp ?? 0 }} / {{ stats?.nextLevelThreshold ?? 100 }} XP</span>
           </div>
           <XPBar
@@ -50,7 +79,7 @@
             :next-level-threshold="stats?.nextLevelThreshold ?? 100"
           />
           <div class="mt-4 flex items-center justify-between text-xs text-white/70">
-            <span>Streak {{ stats?.streak ?? 0 }} days</span>
+            <span>{{ t('dashboard.statStreak', { days: stats?.streak ?? 0 }) }}</span>
             <span>{{ xpProgress }}% complete</span>
           </div>
         </div>
@@ -58,11 +87,12 @@
     </div>
 
     <div class="grid gap-6 md:grid-cols-3">
-      <AppCard title="Active queue" description="Assignments on your desk">
+      <AppCard :title="t('dashboard.cards.activeQueueTitle')" :description="t('dashboard.cards.activeQueueDesc')">
         <div class="space-y-3">
           <p class="text-4xl font-semibold text-foreground">{{ assignedTickets.length }}</p>
           <p class="text-sm text-muted-foreground">
-            {{ highPriorityTickets }} high priority / {{ dueSoonTickets }} due soon
+            {{ t('dashboard.cards.highPriority', { count: highPriorityTickets }) }} /
+            {{ t('dashboard.cards.dueSoon', { count: dueSoonTickets }) }}
           </p>
           <div class="flex items-center gap-3">
             <span class="h-2 flex-1 rounded-full bg-slate-200">
@@ -71,28 +101,28 @@
                 :style="{ width: Math.min(assignedTickets.length * 12, 100) + '%' }"
               ></span>
             </span>
-            <span class="text-xs uppercase text-muted-foreground">focus</span>
+            <span class="text-xs uppercase text-muted-foreground">{{ t('dashboard.cards.focus') }}</span>
           </div>
         </div>
       </AppCard>
-      <AppCard title="Wins logged" description="Closed tickets">
+      <AppCard :title="t('dashboard.cards.winsTitle')" :description="t('dashboard.cards.winsDesc')">
         <div class="space-y-3">
             <div class="flex items-center justify-between">
             <p class="text-4xl font-semibold text-foreground">{{ closedTickets }}</p>
             <span class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-              {{ Math.max(closedTickets - highPriorityTickets, 0) }} normal wins
+              {{ t('dashboard.cards.normalWins', { count: Math.max(closedTickets - highPriorityTickets, 0) }) }}
             </span>
           </div>
-          <p class="text-sm text-muted-foreground">Lifetime closes tracked by gamification.</p>
+          <p class="text-sm text-muted-foreground">{{ t('dashboard.cards.lifetime') }}</p>
           <div class="rounded-md border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 px-4 py-3 text-white shadow">
             <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-white/70">
-              <span>Streak</span>
-              <span>{{ stats?.streak ?? 0 }} days</span>
+              <span>{{ t('dashboard.streakLabel') }}</span>
+              <span>{{ t('dashboard.statStreak', { days: stats?.streak ?? 0 }) }}</span>
             </div>
             <div class="mt-2 flex items-center justify-between text-sm text-white/80">
-              <p class="font-semibold">High priority: {{ highPriorityTickets }}</p>
+              <p class="font-semibold">{{ t('dashboard.cards.highPriority', { count: highPriorityTickets }) }}</p>
               <span class="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-white/80">
-                {{ dueSoonTickets }} due soon
+                {{ t('dashboard.cards.dueSoon', { count: dueSoonTickets }) }}
               </span>
             </div>
             <div class="mt-3 h-2 rounded-full bg-white/20">
@@ -104,28 +134,30 @@
           </div>
         </div>
       </AppCard>
-      <AppCard title="Next deadline" description="Stay ahead of due dates">
+      <AppCard :title="t('dashboard.cards.nextDeadlineTitle')" :description="t('dashboard.cards.nextDeadlineDesc')">
         <div class="space-y-3">
           <p class="text-3xl font-semibold text-foreground">{{ dueSoonTickets }}</p>
           <p class="text-sm text-muted-foreground">
-            {{ nextDueTicket ? 'Next up: ' + nextDueTicket.title : 'No deadlines on the radar.' }}
+            {{ nextDueTicket ? t('dashboard.cards.nextUp', { title: nextDueTicket.title }) : t('dashboard.cards.noDeadlines') }}
           </p>
           <div
             v-if="nextDueTicket"
             class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
           >
             <p class="font-medium">{{ formatDate(nextDueTicket.dueDate) }}</p>
-            <p class="text-xs uppercase tracking-[0.2em] text-amber-600">{{ nextDueTicket.priority }} priority</p>
+            <p class="text-xs uppercase tracking-[0.2em] text-amber-600">
+              {{ t('dashboard.cards.priority', { priority: nextDueTicket.priority }) }}
+            </p>
           </div>
         </div>
       </AppCard>
     </div>
 
     <div class="grid gap-6 lg:grid-cols-3">
-      <AppCard class="lg:col-span-2" title="Assigned tickets" description="Work that needs your attention">
+      <AppCard class="lg:col-span-2" :title="t('dashboard.cards.assignedTitle')" :description="t('dashboard.cards.assignedDesc')">
         <template #action>
-          <RouterLink to="/tickets">
-            <Button variant="ghost" size="sm">View all</Button>
+          <RouterLink :to="localePath('/tickets')">
+            <Button variant="ghost" size="sm">{{ t('dashboard.cards.viewAll') }}</Button>
           </RouterLink>
         </template>
         <div class="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
@@ -135,21 +167,21 @@
             :ticket="ticket"
             @open="openTicket"
           />
-          <p v-if="assignedTickets.length === 0" class="text-sm text-muted-foreground">No tickets assigned yet.</p>
+          <p v-if="assignedTickets.length === 0" class="text-sm text-muted-foreground">{{ t('dashboard.cards.noneAssigned') }}</p>
         </div>
       </AppCard>
 
-      <AppCard title="Weekly productivity" description="Ticket closures (last 7 days)">
+      <AppCard :title="t('dashboard.cards.productivityTitle')" :description="t('dashboard.cards.productivityDesc')">
         <div class="rounded-md border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 px-4 py-3 text-sm text-white shadow">
           <div class="flex items-center justify-between gap-3">
             <div >
-              <p class="text-xs uppercase tracking-[0.35em] text-white/60">Daily output</p>
-              <p class="text-lg font-semibold text-white">Goal 5 tickets/day</p>
+              <p class="text-xs uppercase tracking-[0.35em] text-white/60">{{ t('dashboard.cards.dailyOutput') }}</p>
+              <p class="text-lg font-semibold text-white">{{ t('dashboard.cards.goal') }}</p>
             </div>
             <div class="flex items-center gap-2 text-xs text-white/70">
-              <span class="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-white/80">Last 7 days</span>
+              <span class="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-white/80">{{ t('dashboard.cards.last7days') }}</span>
               <span class="rounded-full border border-emerald-300/40 bg-emerald-200/10 px-3 py-1 text-emerald-100">
-                Avg {{ avgWeeklyClosed }} / day
+                {{ t('dashboard.cards.avgPerDay', { count: avgWeeklyClosed }) }}
               </span>
             </div>
           </div>
@@ -173,7 +205,7 @@
       </AppCard>
     </div>
 
-    <AppCard title="Recent XP events" description="Catatan XP terbaru milikmu.">
+    <AppCard :title="t('dashboard.cards.xpEventsTitle')" :description="t('dashboard.cards.xpEventsTitle')">
       <div v-if="xpEvents.length" class="space-y-3">
         <div class="grid gap-3 sm:grid-cols-2">
           <div
@@ -202,17 +234,17 @@
             :disabled="eventsLoadingMore"
             @click="loadMoreEvents"
           >
-            {{ eventsLoadingMore ? 'Loading...' : 'Load more' }}
+            {{ eventsLoadingMore ? t('dashboard.cards.loading') : t('dashboard.cards.loadMore') }}
           </Button>
         </div>
       </div>
       <div v-else class="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-muted-foreground">
-        Belum ada catatan XP. Tutup tiket atau beri komentar untuk mulai mengisi log.
+        {{ t('dashboard.cards.xpEventsEmpty') }}
       </div>
     </AppCard>
 
     <div class="grid gap-6 lg:grid-cols-2">
-      <AppCard title="Focus stack" description="Top priorities sorted by urgency">
+      <AppCard :title="t('dashboard.cards.focusStackTitle')" :description="t('dashboard.cards.focusStackDesc')">
         <ul v-if="focusTickets.length" class="space-y-3 text-sm">
           <li
             v-for="ticket in focusTickets"
@@ -223,7 +255,11 @@
               <p class="text-sm font-semibold text-foreground">{{ ticket.title }}</p>
               <p class="text-xs text-muted-foreground">
                 {{ ticket.projectId }} /
-                {{ ticket.dueDate ? 'Due ' + formatDate(ticket.dueDate) : 'No due date' }}
+                {{
+                  ticket.dueDate
+                    ? t('dashboard.cards.dueLabel', { date: formatDate(ticket.dueDate) })
+                    : t('dashboard.cards.noDue')
+                }}
               </p>
             </div>
             <div class="flex flex-col items-end gap-2">
@@ -239,14 +275,12 @@
             </div>
           </li>
         </ul>
-        <p v-else class="text-sm text-muted-foreground">
-          No critical work queued. Triage new tickets or help your squad.
-        </p>
+        <p v-else class="text-sm text-muted-foreground">{{ t('dashboard.cards.emptyFocus') }}</p>
       </AppCard>
 
-      <AppCard title="Badges" :description="badgeCopy">
+      <AppCard :title="t('dashboard.cards.badgesTitle')" :description="badgeCopy">
         <template #action>
-          <Button variant="ghost" size="sm">See progress</Button>
+          <Button variant="ghost" size="sm">{{ t('dashboard.cards.badgesAction') }}</Button>
         </template>
         <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
           <BadgeCard v-for="badge in badges" :key="badge.title" v-bind="badge" />
@@ -254,27 +288,27 @@
       </AppCard>
     </div>
 
-    <AppCard title="My ticket queue" description="Tickets assigned to you only">
+    <AppCard :title="t('dashboard.cards.myQueueTitle')" :description="t('dashboard.cards.myQueueDesc')">
       <template #action>
-        <RouterLink to="/tickets">
-          <Button variant="ghost" size="sm">Go to tickets</Button>
+        <RouterLink :to="localePath('/tickets')">
+          <Button variant="ghost" size="sm">{{ t('dashboard.cards.goTickets') }}</Button>
         </RouterLink>
       </template>
       <div class="-mx-2 overflow-x-auto sm:mx-0">
         <table class="min-w-[720px] w-full divide-y divide-slate-100 text-sm">
           <thead class="text-left text-xs uppercase tracking-[0.3em] text-muted-foreground">
             <tr>
-              <th class="px-2 py-3 font-medium">Ticket</th>
-              <th class="px-2 py-3 font-medium">Priority</th>
-              <th class="px-2 py-3 font-medium">Due</th>
-              <th class="px-2 py-3 font-medium">Status</th>
-              <th class="px-2 py-3 text-right font-medium">Actions</th>
+              <th class="px-2 py-3 font-medium">{{ t('dashboard.cards.table.ticket') }}</th>
+              <th class="px-2 py-3 font-medium">{{ t('dashboard.cards.table.priority') }}</th>
+              <th class="px-2 py-3 font-medium">{{ t('dashboard.cards.table.due') }}</th>
+              <th class="px-2 py-3 font-medium">{{ t('dashboard.cards.table.status') }}</th>
+              <th class="px-2 py-3 text-right font-medium">{{ t('dashboard.cards.table.actions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!myTicketRows.length">
               <td colspan="5" class="px-2 py-6 text-center text-sm text-muted-foreground">
-                Belum ada tiket yang ditugaskan ke kamu.
+                {{ t('dashboard.cards.table.empty') }}
               </td>
             </tr>
             <template v-else>
@@ -298,7 +332,11 @@
                   </span>
                 </td>
                 <td class="px-2 py-3 text-sm text-foreground">
-                  {{ ticket.dueDate ? formatDate(ticket.dueDate) : 'No due date' }}
+                  {{
+                    ticket.dueDate
+                      ? formatDate(ticket.dueDate)
+                      : t('dashboard.cards.noDue')
+                  }}
                 </td>
                 <td class="px-2 py-3">
                   <span
@@ -311,7 +349,7 @@
                   </span>
                 </td>
                 <td class="px-2 py-3 text-right">
-                  <Button size="sm" variant="outline" class="text-xs" @click="openTicket(ticket.id)">Detail</Button>
+                  <Button size="sm" variant="outline" class="text-xs" @click="openTicket(ticket.id)">{{ t('dashboard.cards.table.detail') }}</Button>
                 </td>
               </tr>
             </template>
@@ -324,7 +362,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import XPBar from '@/components/molecules/XPBar.vue'
 import BadgeCard from '@/components/molecules/BadgeCard.vue'
@@ -339,8 +377,15 @@ import { useGamificationStore } from '@/stores/gamification'
 import { useTicketsStore } from '@/stores/tickets'
 import { formatDate } from '@/utils/helpers'
 import type { Ticket } from '@/types/models'
+import { PageHeroSkeleton, StatCardsSkeleton, CardGridSkeleton, TableSkeleton } from '@/components/molecules/skeletons'
+import { Skeleton } from '@/components/atoms/ui/skeleton'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
+const route = useRoute()
+const { t } = useI18n()
+const localeParam = computed(() => (route.params.locale as string | undefined))
+const localePath = (path = '') => (localeParam.value ? `/${localeParam.value}${path}` : path)
 const auth = useAuthStore()
 const { currentUser } = storeToRefs(auth)
 
@@ -348,6 +393,7 @@ const gamification = useGamificationStore()
 const { userStats, xpEvents, eventsNextCursor } = storeToRefs(gamification)
 const eventsLoadingMore = ref(false)
 const ticketsStore = useTicketsStore()
+const pageLoading = computed(() => gamification.loading || ticketsStore.loading || !currentUser.value)
 
 const stats = computed(() => {
   if (!currentUser.value) return null
@@ -527,9 +573,9 @@ const avgWeeklyClosed = computed(() => {
 
 const levelBadge = computed(() => {
   const level = stats.value?.level ?? 1
-  if (level >= 5) return 'Elite Operator'
-  if (level >= 3) return 'Momentum Maker'
-  return 'Rookie Closer'
+  if (level >= 5) return t('dashboard.badgeElite')
+  if (level >= 3) return t('dashboard.badgeMomentum')
+  return t('dashboard.badgeRookie')
 })
 
 const badgeCopy = computed(() =>
@@ -543,5 +589,5 @@ const badges = computed(() => [
   { title: 'Bug Hunter', description: 'Resolve urgent bugs', icon: 'bug' },
 ])
 
-const openTicket = (ticketId) => router.push(`/tickets/${ticketId}`)
+const openTicket = (ticketId) => router.push(localePath(`/tickets/${ticketId}`))
 </script>

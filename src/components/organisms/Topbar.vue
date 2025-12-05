@@ -4,13 +4,13 @@
       <button class="text-slate-500 lg:hidden" @click="toggleSidebar">?</button>
 
       <!-- <form @submit.prevent="handleSearch">
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Search</p>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ t('components.topbar.searchLabel') }}</p>
         <div class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-1 text-sm text-slate-600">
           <span>?</span>
           <input
             type="text"
             class="flex-1 bg-transparent placeholder-slate-400 focus:outline-none"
-            placeholder="Tickets, projects, users"
+            :placeholder="t('components.topbar.searchPlaceholder')"
             v-model="search"
           />
         </div>
@@ -21,7 +21,7 @@
       <!-- NOTIFICATION -->
       <button
         class="relative rounded-full border border-slate-200 p-2 text-slate-500 transition hover:border-slate-400 hover:text-slate-900"
-        title="Notifications"
+        :title="t('topbar.notifications')"
       >
         <!-- Bell Icon -->
         <span class="h-4 w-4 flex">
@@ -63,18 +63,18 @@
           class="absolute right-0 mt-2 w-40 rounded-md border border-slate-200 bg-white py-2 text-sm shadow-lg"
         >
           <button class="block w-full px-4 py-2 text-left hover:bg-slate-50" @click="goProfile">
-            Profile
+            {{ t('topbar.profile') }}
           </button>
           <button class="block w-full px-4 py-2 text-left hover:bg-slate-50" @click="handleLogout">
-            Logout
+            {{ t('topbar.logout') }}
           </button>
         </div>
       </div>
     </div>
     <ConfirmModal
       :open="logoutConfirm"
-      title="Logout"
-      message="Are you sure you want to logout?"
+      :title="t('sidebar.logoutTitle')"
+      :message="t('sidebar.logoutMessage')"
       @cancel="logoutConfirm = false"
       @confirm="confirmLogout"
     />
@@ -88,15 +88,18 @@ import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 import { useSidebar } from '@/components/atoms/ui/sidebar'
 import ConfirmModal from '@/components/molecules/ConfirmModal.vue'
+import { useI18n } from 'vue-i18n'
 
 const search = ref<string>('')
 const showMenu = ref(false)
 const logoutConfirm = ref(false)
+const { t } = useI18n()
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const { currentUser } = storeToRefs(auth)
+const localeParam = computed(() => (route.params.locale as string | undefined))
 
 const initials = computed(() => {
   const name = currentUser.value?.name ?? 'User'
@@ -127,11 +130,8 @@ const toggleMenu = () => {
 
 const handleSearch = () => {
   const q = search.value.trim()
-  if (route.path !== '/tickets') {
-    router.push({ path: '/tickets', query: q ? { q } : {} })
-  } else {
-    router.push({ query: q ? { q } : {} })
-  }
+  const basePath = localeParam.value ? `/${localeParam.value}/tickets` : '/tickets'
+  router.push({ path: basePath, query: q ? { q } : {} })
 }
 
 const handleLogout = () => {
@@ -142,11 +142,12 @@ const confirmLogout = () => {
   logoutConfirm.value = false
   auth.logout()
   showMenu.value = false
-  router.push('/login')
+  router.push(localeParam.value ? { path: `/${localeParam.value}/login` } : '/login')
 }
 
 const goProfile = () => {
-  router.push('/profile')
+  const path = localeParam.value ? `/${localeParam.value}/profile` : '/profile'
+  router.push(path)
   showMenu.value = false
 }
 

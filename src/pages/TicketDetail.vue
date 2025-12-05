@@ -1,15 +1,21 @@
 ﻿<template>
-  <section v-if="ticket" class="space-y-6">
+  <section v-if="pageLoading" class="space-y-6">
+    <PageHeroSkeleton />
+    <CardGridSkeleton :count="4" columns-class="md:grid-cols-2" />
+    <TableSkeleton :columns="3" :rows="4" />
+  </section>
+
+  <section v-else-if="ticket" class="space-y-6">
     <header class="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 p-6 text-white shadow-2xl">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="space-y-1">
-          <p class="text-xs uppercase tracking-[0.3em] text-white/70">Ticket #{{ ticket.id }}</p>
+          <p class="text-xs uppercase tracking-[0.3em] text-white/70">{{ t('ticketDetail.ticket', { id: ticket.id }) }}</p>
           <h1 class="text-3xl font-semibold leading-tight">{{ ticket.title }}</h1>
-          <p class="text-sm text-white/80">{{ ticket.description || 'No description provided yet.' }}</p>
+          <p class="text-sm text-white/80">{{ ticket.description || t('ticketDetail.noDescription') }}</p>
         </div>
         <div class="flex flex-wrap gap-3">
           <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm">
-            Status:
+            {{ t('ticketDetail.status') }}:
             <select
               :value="ticket.status"
               class="rounded-md border border-white/30 bg-white/15 px-3 py-1 text-white"
@@ -21,11 +27,11 @@
             </select>
           </span>
           <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm">
-            Priority:
+            {{ t('ticketDetail.priority') }}:
             <span class="rounded-full bg-white/15 px-3 py-1 text-white">{{ ticket.priority }}</span>
           </span>
           <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm">
-            Type:
+            {{ t('ticketDetail.type') }}:
             <span class="rounded-full bg-white/15 px-3 py-1 text-white">{{ ticket.type }}</span>
           </span>
         </div>
@@ -36,53 +42,53 @@
       <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-card lg:col-span-3">
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div class="rounded-lg bg-slate-50 p-3">
-            <p class="text-xs uppercase text-slate-500">Assignee</p>
+            <p class="text-xs uppercase text-slate-500">{{ t('ticketDetail.assignee') }}</p>
             <div class="mt-2 flex items-center gap-2">
               <span class="inline-block h-8 w-9 rounded-full bg-slate-200"></span>
               <div>
-                <p class="text-slate-900">{{ assigneeName || 'Unassigned' }}</p>
+                <p class="text-slate-900">{{ assigneeName || t('ticketDetail.unassigned') }}</p>
                 <select
                   :value="ticket.assigneeId || ''"
                   class="mt-1 rounded-md border border-slate-200 bg-white px-5 py-1 text-sm text-slate-700"
                   @change="updateAssignee"
                 >
-                  <option value="">Unassigned</option>
+                  <option value="">{{ t('ticketDetail.unassigned') }}</option>
                   <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
                 </select>
               </div>
             </div>
           </div>
           <div class="rounded-lg bg-indigo-50 p-3">
-            <p class="text-xs uppercase text-indigo-600">XP Reward</p>
+            <p class="text-xs uppercase text-indigo-600">{{ t('ticketDetail.xpReward') }}</p>
             <p class="mt-2 text-3xl font-semibold text-indigo-900">{{ xpReward }} XP</p>
-            <p class="text-xs text-indigo-700/80">Based on priority</p>
+            <p class="text-xs text-indigo-700/80">{{ t('ticketDetail.basedOnPriority') }}</p>
           </div>
           <div class="rounded-lg bg-emerald-50 p-3">
-            <p class="text-xs uppercase text-emerald-600">Status</p>
+            <p class="text-xs uppercase text-emerald-600">{{ t('ticketDetail.status') }}</p>
             <p class="mt-2 text-xl font-semibold capitalize text-emerald-900">{{ displayStatus }}</p>
-            <p class="text-xs text-emerald-700/80">Realtime updates</p>
+            <p class="text-xs text-emerald-700/80">{{ t('ticketDetail.realtime') }}</p>
           </div>
         </div>
       </div>
 
       <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-card">
-        <p class="text-xs uppercase text-slate-500">Meta</p>
+        <p class="text-xs uppercase text-slate-500">{{ t('ticketDetail.meta') }}</p>
         <dl class="mt-3 space-y-2 text-sm text-slate-700">
           <div class="flex justify-between">
-            <dt>Type</dt>
+            <dt>{{ t('ticketDetail.type') }}</dt>
             <dd class="font-medium">{{ ticket.type }}</dd>
           </div>
           <div class="flex justify-between">
-            <dt>Priority</dt>
+            <dt>{{ t('ticketDetail.priority') }}</dt>
             <dd class="font-medium capitalize">{{ ticket.priority }}</dd>
           </div>
           <div class="flex justify-between">
-            <dt>Status</dt>
+            <dt>{{ t('ticketDetail.status') }}</dt>
             <dd class="font-medium capitalize">{{ displayStatus }}</dd>
           </div>
           <div class="flex justify-between">
-            <dt>Assignee</dt>
-            <dd class="font-medium">{{ assigneeName || 'Unassigned' }}</dd>
+            <dt>{{ t('ticketDetail.assignee') }}</dt>
+            <dd class="font-medium">{{ assigneeName || t('ticketDetail.unassigned') }}</dd>
           </div>
         </dl>
       </div>
@@ -97,14 +103,14 @@
           :class="activeTab === tab ? 'border-b-2 border-slate-900 text-slate-900' : 'text-slate-500'"
           @click="activeTab = tab"
         >
-          {{ tab }}
+          {{ t(`ticketDetail.tabs.${tab}`) }}
         </button>
       </div>
       <div class="p-4 text-sm text-slate-700">
-        <div v-if="activeTab === 'Overview'" class="space-y-2 leading-relaxed">
-          <p>{{ ticket.description || 'No description yet.' }}</p>
+        <div v-if="activeTab === 'overview'" class="space-y-2 leading-relaxed">
+          <p>{{ ticket.description || t('ticketDetail.descriptionEmpty') }}</p>
         </div>
-        <div v-else-if="activeTab === 'Comments'" class="space-y-4">
+        <div v-else-if="activeTab === 'comments'" class="space-y-4">
           <ul class="space-y-3">
             <li v-for="comment in ticket.comments" :key="comment.id" class="rounded-lg border border-slate-200 bg-slate-50 p-3">
               <div class="flex items-start justify-between gap-2">
@@ -114,25 +120,25 @@
                   <p class="text-xs text-slate-500">{{ comment.timestamp }}</p>
                 </div>
                 <div v-if="comment.authorId === auth.currentUser?.id" class="flex gap-2 text-xs">
-                  <button class="text-indigo-600 hover:underline" @click="promptEditComment(comment)">Edit</button>
-                  <button class="text-rose-600 hover:underline" @click="confirmDeleteComment(comment)">Delete</button>
+                  <button class="text-indigo-600 hover:underline" @click="promptEditComment(comment)">{{ t('ticketDetail.comments.edit') }}</button>
+                  <button class="text-rose-600 hover:underline" @click="confirmDeleteComment(comment)">{{ t('ticketDetail.comments.delete') }}</button>
                 </div>
               </div>
             </li>
-            <li v-if="ticket.comments.length === 0" class="text-slate-400">No comments yet.</li>
+            <li v-if="ticket.comments.length === 0" class="text-slate-400">{{ t('ticketDetail.comments.none') }}</li>
           </ul>
           <form class="space-y-2" @submit.prevent="addComment">
             <textarea
               v-model="commentText"
               rows="3"
               class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-900"
-              placeholder="Share an update..."
+              :placeholder="t('ticketDetail.comments.placeholder')"
             ></textarea>
             <button
               class="rounded-md border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 px-4 py-2 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
               type="submit"
             >
-              Post comment
+              {{ t('ticketDetail.comments.post') }}
             </button>
           </form>
         </div>
@@ -150,7 +156,7 @@
       </div>
     </div>
   </section>
-  <p v-else class="text-slate-500">Ticket not found.</p>
+  <p v-else class="text-slate-500">{{ t('ticketDetail.notFound') }}</p>
 </template>
 
 <script setup lang="ts">
@@ -162,27 +168,33 @@ import { useUsersStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
 import { PRIORITY_XP_MAP } from '@/utils/constants'
 import type { TicketStatus } from '@/utils/constants'
+import { PageHeroSkeleton, CardGridSkeleton, TableSkeleton } from '@/components/molecules/skeletons'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const ticketsStore = useTicketsStore()
 const ticketId = route.params.id as string
 const ticket = computed(() => ticketsStore.getById(ticketId))
-const tabs = ['Overview', 'Comments', 'History']
-const activeTab = ref('Overview')
+const loadingTicket = ref(false)
+const pageLoading = computed(() => loadingTicket.value && !ticket.value)
+const tabs = ['overview', 'comments', 'history'] as const
+type TabKey = (typeof tabs)[number]
+const activeTab = ref<TabKey>('overview')
 const commentText = ref('')
 const usersStore = useUsersStore()
 const { users } = storeToRefs(usersStore)
 const auth = useAuthStore()
+const { t } = useI18n()
 const statusOptions = [
-  { value: 'todo', label: 'Todo' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'review', label: 'Review' },
-  { value: 'done', label: 'Done' },
+  { value: 'todo', label: t('ticketDetail.statusOptions.todo') },
+  { value: 'in_progress', label: t('ticketDetail.statusOptions.in_progress') },
+  { value: 'review', label: t('ticketDetail.statusOptions.review') },
+  { value: 'done', label: t('ticketDetail.statusOptions.done') },
 ]
 
 const xpReward = computed(() => PRIORITY_XP_MAP[ticket.value?.priority ?? 'medium'])
 const assigneeName = computed(() => users.value.find((u) => u.id === ticket.value?.assigneeId)?.name)
-const displayStatus = computed(() => statusOptions.find((s) => s.value === ticket.value?.status)?.label ?? 'Todo')
+const displayStatus = computed(() => statusOptions.find((s) => s.value === ticket.value?.status)?.label ?? t('ticketDetail.statusOptions.todo'))
 
 const updateStatus = async (event: Event) => {
   const status = (event.target as HTMLSelectElement | null)?.value as TicketStatus | undefined
@@ -201,7 +213,7 @@ const updateAssignee = async (event: Event) => {
 const addComment = async () => {
   if (!commentText.value || !ticket.value) return
   await ticketsStore.addComment(ticket.value.id, {
-    author: auth.currentUser?.name ?? 'Unknown',
+    author: auth.currentUser?.name ?? t('ticketDetail.unassigned'),
     text: commentText.value,
   })
   commentText.value = ''
@@ -209,19 +221,24 @@ const addComment = async () => {
 
 const promptEditComment = async (comment: any) => {
   if (!ticket.value) return
-  const next = window.prompt('Edit comment', comment.text)
+  const next = window.prompt(t('ticketDetail.comments.editPrompt'), comment.text)
   if (next === null || next.trim() === '') return
   await ticketsStore.updateComment(ticket.value.id, comment.id, next.trim())
 }
 
 const confirmDeleteComment = async (comment: any) => {
   if (!ticket.value) return
-  const ok = window.confirm('Delete this comment?')
+  const ok = window.confirm(t('ticketDetail.comments.deleteConfirm'))
   if (!ok) return
   await ticketsStore.deleteComment(ticket.value.id, comment.id)
 }
 
-onMounted(() => {
-  ticketsStore.fetchTicket(ticketId)
+onMounted(async () => {
+  loadingTicket.value = true
+  try {
+    await ticketsStore.fetchTicket(ticketId)
+  } finally {
+    loadingTicket.value = false
+  }
 })
 </script>

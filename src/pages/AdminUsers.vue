@@ -1,25 +1,31 @@
 ﻿<template>
-  <section class="space-y-8">
+  <section v-if="pageLoading" class="space-y-8">
+    <PageHeroSkeleton />
+    <TableSkeleton :columns="3" :rows="6" />
+    <CardGridSkeleton :count="2" columns-class="grid-cols-1" />
+  </section>
+
+  <section v-else class="space-y-8">
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-20 top-8 h-48 w-48 rounded-full bg-white/10 blur-3xl"></div>
       <div class="pointer-events-none absolute -left-16 bottom-0 h-60 w-60 rounded-full bg-indigo-500/30 blur-3xl"></div>
       <div class="relative flex flex-col gap-6 p-8 lg:flex-row lg:items-center lg:justify-between">
         <div class="space-y-4">
-          <p class="text-xs uppercase tracking-[0.4em] text-white/70">Control tower</p>
-          <h1 class="text-3xl font-semibold">Admin Panel</h1>
-          <p class="text-sm text-white/70">Kelola role, undang user baru, dan awasi audit log.</p>
+          <p class="text-xs uppercase tracking-[0.4em] text-white/70">{{ t('admin.heroLabel') }}</p>
+          <h1 class="text-3xl font-semibold">{{ t('admin.heroTitle') }}</h1>
+          <p class="text-sm text-white/70">{{ t('admin.heroDesc') }}</p>
           <div class="grid gap-4 text-sm sm:grid-cols-3">
             <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
-              <p class="text-xs uppercase text-white/60">Total user</p>
+              <p class="text-xs uppercase text-white/60">{{ t('admin.totalUsers') }}</p>
               <p class="text-3xl font-semibold">{{ users.length }}</p>
             </div>
             <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
-              <p class="text-xs uppercase text-white/60">Admin</p>
+              <p class="text-xs uppercase text-white/60">{{ t('admin.adminCount') }}</p>
               <p class="text-3xl font-semibold">{{ adminCount }}</p>
             </div>
             <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
-              <p class="text-xs uppercase text-white/60">Audit terbaru</p>
-              <p class="text-lg font-semibold">{{ audit[0]?.action ?? 'Tidak ada' }}</p>
+              <p class="text-xs uppercase text-white/60">{{ t('admin.latestAudit') }}</p>
+              <p class="text-lg font-semibold">{{ audit[0]?.action ?? t('admin.noAudit') }}</p>
             </div>
           </div>
         </div>
@@ -30,8 +36,8 @@
       <div class="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-card">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">User management</p>
-            <h2 class="text-xl font-semibold text-foreground">Daftar user</h2>
+            <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{{ t('admin.userMgmtLabel') }}</p>
+            <h2 class="text-xl font-semibold text-foreground">{{ t('admin.userListTitle') }}</h2>
           </div>
           <div class="flex items-center gap-2 text-xs text-muted-foreground">
             <Button
@@ -40,7 +46,7 @@
               :class="menuStatus === 'active' ? 'text-foreground font-semibold' : ''"
               @click="menuStatus = 'active'"
             >
-              Semua
+              {{ t('admin.filterAll') }}
             </Button>
             <Button
               size="sm"
@@ -48,22 +54,22 @@
               :class="menuStatus === 'inactive' ? 'text-foreground font-semibold' : ''"
               @click="menuStatus = 'inactive'"
             >
-              Limit 3
+              {{ t('admin.filterLimit') }}
             </Button>
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-          <Input v-model="searchQuery" placeholder="Cari nama atau username" class="w-full flex-1 rounded-2xl border border-border bg-white/80 shadow-sm" />
+          <Input v-model="searchQuery" :placeholder="t('admin.searchPlaceholder')" class="w-full flex-1 rounded-2xl border border-border bg-white/80 shadow-sm" />
           <span class="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 shadow-sm">
-            {{ visibleUsers.length }} user
+            {{ t('admin.usersCount', { count: visibleUsers.length }) }}
           </span>
         </div>
         <div class="overflow-x-auto rounded-2xl border border-border shadow-inner">
           <table class="min-w-full divide-y divide-border text-sm text-foreground">
             <thead class="bg-muted/50 text-xs uppercase tracking-[0.3em] text-muted-foreground">
               <tr>
-                <th class="px-4 py-3 text-left">User</th>
-                <th class="px-4 py-3 text-left">Role</th>
+                <th class="px-4 py-3 text-left">{{ t('admin.table.user') }}</th>
+                <th class="px-4 py-3 text-left">{{ t('admin.table.role') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border bg-card">
@@ -96,10 +102,10 @@
                       class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
                       @change="(event) => onRoleChange(user.id, event)"
                     >
-                      <option value="admin">Admin</option>
-                      <option value="project_manager">Project Manager</option>
-                      <option value="developer">Developer</option>
-                      <option value="viewer">Viewer</option>
+                      <option value="admin">{{ t('admin.roles.admin') }}</option>
+                      <option value="project_manager">{{ t('admin.roles.project_manager') }}</option>
+                      <option value="developer">{{ t('admin.roles.developer') }}</option>
+                      <option value="viewer">{{ t('admin.roles.viewer') }}</option>
                     </select>
                   </div>
                 </td>
@@ -107,17 +113,17 @@
             </tbody>
           </table>
         </div>
-        <p v-if="!isAdmin" class="text-xs text-muted-foreground">Hanya admin yang boleh mengganti role.</p>
+        <p v-if="!isAdmin" class="text-xs text-muted-foreground">{{ t('admin.roleOnlyAdmin') }}</p>
       </div>
 
       <div class="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-card">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Audit log</p>
-            <h2 class="text-lg font-semibold text-foreground">Aktivitas</h2>
+            <p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{{ t('admin.auditLabel') }}</p>
+            <h2 class="text-lg font-semibold text-foreground">{{ t('admin.auditTitle') }}</h2>
           </div>
           <div class="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{{ audit.length }} entries</span>
+            <span>{{ t('admin.auditEntries', { count: audit.length }) }}</span>
             <Button
               v-if="nextCursor"
               size="xs"
@@ -125,7 +131,7 @@
               class="h-7 px-2"
               @click="loadMoreAudit"
             >
-              Load more
+              {{ t('admin.loadMore') }}
             </Button>
           </div>
         </div>
@@ -152,6 +158,8 @@ import { Input } from '@/components/atoms/ui/input'
 import { Button } from '@/components/atoms/ui/button'
 import { formatDateTime } from '@/utils/helpers'
 import type { Role } from '@/utils/constants'
+import { PageHeroSkeleton, CardGridSkeleton, TableSkeleton } from '@/components/molecules/skeletons'
+import { useI18n } from 'vue-i18n'
 
 const usersStore = useUsersStore()
 const { users } = storeToRefs(usersStore)
@@ -160,8 +168,10 @@ const { entries, nextCursor } = storeToRefs(auditStore)
 const audit = entries
 const auth = useAuthStore()
 const isAdmin = computed(() => auth.currentUser?.role === 'admin')
+const pageLoading = computed(() => usersStore.loading || auditStore.loading)
 const searchQuery = ref('')
 const menuStatus = ref('active')
+const { t } = useI18n()
 
 const visibleUsers = computed(() => {
   const query = searchQuery.value.toLowerCase().trim()
@@ -174,10 +184,10 @@ const visibleUsers = computed(() => {
 const adminCount = computed(() => users.value.filter((user) => user.role === 'admin').length)
 const roleLabel = (role: Role) => {
   const map: Record<Role, string> = {
-    admin: 'Admin',
-    project_manager: 'Project Manager',
-    developer: 'Developer',
-    viewer: 'Viewer',
+    admin: t('admin.roles.admin'),
+    project_manager: t('admin.roles.project_manager'),
+    developer: t('admin.roles.developer'),
+    viewer: t('admin.roles.viewer'),
   }
   return map[role] ?? role
 }

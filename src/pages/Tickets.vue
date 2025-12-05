@@ -1,26 +1,52 @@
 <template>
-  <section class="space-y-8">
+  <section v-if="pageLoading" class="space-y-8">
+    <PageHeroSkeleton />
+    <StatCardsSkeleton />
+    <div class="rounded-3xl border border-border bg-card p-4 shadow-card space-y-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <Skeleton class="h-10 w-64 rounded-2xl bg-slate-100" />
+        <Skeleton class="h-10 w-28 rounded-2xl bg-slate-100" />
+        <div class="ml-auto flex flex-wrap gap-2">
+          <Skeleton class="h-8 w-16 rounded-lg bg-slate-100" />
+          <Skeleton class="h-8 w-16 rounded-lg bg-slate-100" />
+        </div>
+      </div>
+      <TableSkeleton :columns="6" :rows="5" />
+    </div>
+    <div class="grid gap-6 lg:grid-cols-2">
+      <CardGridSkeleton :count="3" columns-class="grid-cols-1" />
+      <CardGridSkeleton :count="3" columns-class="grid-cols-1" />
+    </div>
+  </section>
+
+  <section v-else class="space-y-8">
     <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white shadow-2xl">
       <div class="pointer-events-none absolute -right-16 -top-10 h-40 w-40 rounded-md bg-white/15 blur-3xl"></div>
       <div class="pointer-events-none absolute -left-12 bottom-0 h-48 w-48 rounded-md bg-indigo-500/30 blur-3xl"></div>
       <div class="relative flex flex-col gap-8 p-8 lg:flex-row lg:items-center lg:justify-between">
         <div class="space-y-4">
-          <p class="text-xs uppercase tracking-[0.4em] text-white/70">Ops queue</p>
-          <h1 class="text-3xl font-semibold">Ticket control center</h1>
+          <p class="text-xs uppercase tracking-[0.4em] text-white/70">{{ t('tickets.heroLabel') }}</p>
+          <h1 class="text-3xl font-semibold">{{ t('tickets.heroTitle') }}</h1>
           <p class="text-sm text-white/70">
-            {{ activeTickets }} active tickets / {{ urgentTickets }} flagged urgent / {{ dueSoonCount }} due soon
+            {{
+              t('tickets.heroStats', {
+                active: activeTickets,
+                urgent: urgentTickets,
+                dueSoon: dueSoonCount,
+              })
+            }}
           </p>
           <div class="flex flex-wrap gap-4 text-sm">
             <div class="min-w-[120px]">
-              <p class="text-xs uppercase text-white/60">Completion</p>
+              <p class="text-xs uppercase text-white/60">{{ t('tickets.completion') }}</p>
               <p class="text-3xl font-semibold">{{ completionRate }}%</p>
             </div>
             <div class="min-w-[120px]">
-              <p class="text-xs uppercase text-white/60">Total tickets</p>
+              <p class="text-xs uppercase text-white/60">{{ t('tickets.totalTickets') }}</p>
               <p class="text-3xl font-semibold">{{ totalTickets }}</p>
             </div>
             <div class="min-w-[120px]">
-              <p class="text-xs uppercase text-white/60">Backlog load</p>
+              <p class="text-xs uppercase text-white/60">{{ t('tickets.backlogLoad') }}</p>
               <p class="text-3xl font-semibold">{{ statusCounts.todo ?? 0 }}</p>
             </div>
           </div>
@@ -31,11 +57,11 @@
             class="border-0 bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-110"
             @click="openCreate"
           >
-            New ticket
+            {{ t('tickets.newTicket') }}
           </Button>
-          <RouterLink to="/projects">
+          <RouterLink :to="localePath('/projects')">
             <Button variant="ghost" class="border border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-              View projects
+              {{ t('tickets.viewProjects') }}
             </Button>
           </RouterLink>
         </div>
@@ -43,7 +69,7 @@
     </div>
 
     <div class="grid gap-6 md:grid-cols-3">
-      <AppCard title="Backlog load" description="Items waiting to be started">
+      <AppCard :title="t('tickets.cards.backlogTitle')" :description="t('tickets.cards.backlogDesc')">
         <div class="space-y-3">
           <p class="text-4xl font-semibold text-foreground">{{ statusCounts.backlog ?? 0 }}</p>
           <p class="text-sm text-muted-foreground">{{ percentOfTotal(statusCounts.backlog ?? 0) }}% of total</p>
@@ -52,7 +78,7 @@
           </div>
         </div>
       </AppCard>
-      <AppCard title="In flight" description="Tickets currently being worked">
+      <AppCard :title="t('tickets.cards.inFlightTitle')" :description="t('tickets.cards.inFlightDesc')">
         <div class="space-y-3">
           <p class="text-4xl font-semibold text-foreground">{{ statusCounts.in_progress ?? 0 }}</p>
           <p class="text-sm text-muted-foreground">{{ percentOfTotal(statusCounts.in_progress ?? 0) }}% of total</p>
@@ -61,7 +87,7 @@
           </div>
         </div>
       </AppCard>
-      <AppCard title="Completed" description="Closed and credited tickets">
+      <AppCard :title="t('tickets.cards.doneTitle')" :description="t('tickets.cards.doneDesc')">
         <div class="space-y-3">
           <p class="text-4xl font-semibold text-foreground">{{ statusCounts.done ?? 0 }}</p>
           <p class="text-sm text-muted-foreground">{{ percentOfTotal(statusCounts.done ?? 0) }}% of total</p>
@@ -72,14 +98,14 @@
       </AppCard>
     </div>
 
-  <AppCard title="Queue overview" description="Search, triage, and keep work unblocked.">
-    <template #action>
+  <AppCard :title="t('tickets.queueTitle')" :description="t('tickets.queueDesc')">
+      <template #action>
       <div class="flex flex-wrap items-center gap-3">
         <div class="relative">
           <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             v-model="searchTerm"
-            placeholder="Search title, assignee, project"
+            :placeholder="t('tickets.searchPlaceholder')"
             class="w-64 bg-transparent pl-9"
             @input="runSearch"
           />
@@ -89,7 +115,7 @@
           class="border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
           @click="openCreate"
         >
-          New ticket
+          {{ t('tickets.newTicket') }}
         </Button>
       </div>
     </template>
@@ -112,19 +138,21 @@
           </span>
         </button>
         <div class="ml-auto flex flex-wrap items-center gap-2">
-          <span class="text-xs uppercase text-muted-foreground">Assignee</span>
+          <span class="text-xs uppercase text-muted-foreground">{{ t('tickets.filters.assignee') }}</span>
           <select v-model="assigneeFilter" class="rounded-md border px-3 py-1 text-xs font-medium" @change="runSearch">
-            <option value="all">All</option>
+            <option value="all">{{ t('tickets.filters.all') }}</option>
             <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
           </select>
-          <span class="text-xs uppercase text-muted-foreground">Epic</span>
+          <span class="text-xs uppercase text-muted-foreground">{{ t('tickets.filters.epic') }}</span>
           <select v-model="epicFilter" class="rounded-md border px-3 py-1 text-xs font-medium" @change="runSearch">
-            <option value="all">All epics</option>
+            <option value="all">{{ t('tickets.filters.allEpics') }}</option>
             <option v-for="epic in epicsByProject" :key="epic.id" :value="epic.id">
               {{ epic.title }} ({{ epic.doneCount ?? 0 }}/{{ epic.totalCount ?? 0 }})
             </option>
           </select>
-          <Button variant="ghost" size="xs" class="text-muted-foreground" @click="resetFilters">Reset</Button>
+          <Button variant="ghost" size="xs" class="text-muted-foreground" @click="resetFilters">
+            {{ t('tickets.filters.reset') }}
+          </Button>
         </div>
       </div>
 
@@ -132,19 +160,19 @@
         <table class="min-w-full divide-y divide-border text-sm">
           <thead class="bg-muted/60 text-muted-foreground">
             <tr>
-              <th class="px-4 py-3 text-left">Title</th>
-              <th class="px-4 py-3 text-left">Project</th>
-              <th class="px-4 py-3 text-left">Priority</th>
-              <th class="px-4 py-3 text-left">Status</th>
-              <th class="px-4 py-3 text-left">Assignee</th>
-              <th class="px-4 py-3 text-right">Actions</th>
+              <th class="px-4 py-3 text-left">{{ t('tickets.table.title') }}</th>
+              <th class="px-4 py-3 text-left">{{ t('tickets.table.project') }}</th>
+              <th class="px-4 py-3 text-left">{{ t('tickets.table.priority') }}</th>
+              <th class="px-4 py-3 text-left">{{ t('tickets.table.status') }}</th>
+              <th class="px-4 py-3 text-left">{{ t('tickets.table.assignee') }}</th>
+              <th class="px-4 py-3 text-right">{{ t('tickets.table.actions') }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border bg-card text-foreground">
             <tr v-for="ticket in filteredTickets" :key="ticket.id" class="transition hover:bg-muted/40">
               <td class="px-4 py-3">
                 <button class="text-left text-sm font-semibold text-foreground underline-offset-2 hover:underline" @click="openDetail(ticket.id)">{{ ticket.title }}</button>
-                <p class="text-xs text-muted-foreground">Due {{ dueLabel(ticket) }}</p>
+                <p class="text-xs text-muted-foreground">{{ t('tickets.labels.due', { date: dueLabel(ticket) }) }}</p>
               </td>
               <td class="px-4 py-3 text-sm text-foreground">
                 {{ projectDisplay(ticket.projectId) }}
@@ -158,7 +186,7 @@
               <td class="px-4 py-3 text-foreground">{{ assigneeLabel(ticket) }}</td>
                 <td class="px-4 py-3">
                   <div class="flex justify-end gap-2">
-                    <Button size="xs" variant="ghost" class="text-slate-600" @click="openDetail(ticket.id)">View</Button>
+                    <Button size="xs" variant="ghost" class="text-slate-600" @click="openDetail(ticket.id)">{{ t('tickets.table.view') }}</Button>
                     <Button
                       v-if="canManageTicket(ticket)"
                       size="xs"
@@ -166,7 +194,7 @@
                       class="text-slate-700"
                       @click="editTicket(ticket)"
                     >
-                      Edit
+                      {{ t('tickets.table.edit') }}
                     </Button>
                     <Button
                       v-if="canManageTicket(ticket)"
@@ -174,7 +202,7 @@
                       variant="destructive"
                       @click="promptDelete(ticket)"
                     >
-                      Delete
+                      {{ t('tickets.table.delete') }}
                     </Button>
                   </div>
                 </td>
@@ -182,18 +210,18 @@
           </tbody>
         </table>
         <p v-if="filteredTickets.length === 0" class="px-4 py-6 text-center text-sm text-muted-foreground">
-          No tickets match that filter. Clear filters or create a new ticket.
+          {{ t('tickets.table.empty') }}
         </p>
         <div class="flex justify-center bg-card p-3">
           <Button v-if="nextCursor" :disabled="loadingMore" variant="outline" size="sm" @click="loadMore">
-            {{ loadingMore ? 'Loading...' : 'Load more' }}
+            {{ loadingMore ? t('common.loading') : t('common.loadMore') }}
           </Button>
         </div>
       </div>
     </AppCard>
 
     <div class="grid gap-6 lg:grid-cols-2">
-      <AppCard title="Backlog pipeline" description="Tickets waiting to be started.">
+      <AppCard :title="t('tickets.backlog.title')" :description="t('tickets.backlog.desc')">
         <div v-if="backlogTickets.length" class="space-y-3">
           <div v-for="ticket in backlogTickets" :key="ticket.id" class="rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
             <div class="flex items-center justify-between">
@@ -205,33 +233,33 @@
                 {{ ticket.priority }}
               </span>
             </div>
-            <p class="mt-1 text-xs text-muted-foreground">Due {{ dueLabel(ticket) }}</p>
+            <p class="mt-1 text-xs text-muted-foreground">{{ t('tickets.labels.due', { date: dueLabel(ticket) }) }}</p>
             <div class="mt-2 flex gap-2">
-              <Button size="xs" variant="ghost" @click="openDetail(ticket.id)">View</Button>
-              <Button size="xs" variant="outline" v-if="canManageTicket(ticket)" @click="editTicket(ticket)">Edit</Button>
+              <Button size="xs" variant="ghost" @click="openDetail(ticket.id)">{{ t('tickets.table.view') }}</Button>
+              <Button size="xs" variant="outline" v-if="canManageTicket(ticket)" @click="editTicket(ticket)">{{ t('tickets.table.edit') }}</Button>
             </div>
           </div>
         </div>
-        <p v-else class="text-sm text-muted-foreground">No backlog items.</p>
+        <p v-else class="text-sm text-muted-foreground">{{ t('tickets.backlog.empty') }}</p>
       </AppCard>
 
-      <AppCard title="Epics" description="Track initiatives and their progress.">
+      <AppCard :title="t('tickets.epics.title')" :description="t('tickets.epics.desc')">
         <div class="mb-3 flex items-center justify-between text-xs text-muted-foreground">
           <div class="flex items-center gap-2">
-            <span>Epics</span>
+            <span>{{ t('tickets.epics.title') }}</span>
             <select v-model="epicProjectFilter" class="rounded-md border px-2 py-1 text-xs font-semibold">
-              <option value="all">All projects</option>
+              <option value="all">{{ t('tickets.epics.allProjects') }}</option>
               <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
             </select>
           </div>
-          <RouterLink to="/epics" class="text-primary underline">Manage epics</RouterLink>
+          <RouterLink :to="localePath('/epics')" class="text-primary underline">{{ t('tickets.epics.manage') }}</RouterLink>
         </div>
         <div v-if="epicsByProject.length" class="space-y-2">
           <div v-for="epic in epicsByProject" :key="epic.id" class="rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm font-semibold text-foreground">{{ epic.title }}</p>
-                <p class="text-xs text-muted-foreground">{{ epic.description || 'No description' }}</p>
+                <p class="text-xs text-muted-foreground">{{ epic.description || t('tickets.epics.noDescription') }}</p>
               </div>
               <span class="text-xs rounded-md border px-2 py-0.5 capitalize text-muted-foreground">{{ epic.status }}</span>
             </div>
@@ -244,10 +272,10 @@
             <p class="mt-1 text-xs text-muted-foreground">{{ epicProgressText(epic) }} done</p>
           </div>
         </div>
-        <p v-else class="text-sm text-muted-foreground">No epics yet.</p>
+        <p v-else class="text-sm text-muted-foreground">{{ t('tickets.epics.none') }}</p>
       </AppCard>
 
-      <AppCard title="Deadline radar" description="Next due tickets in the queue.">
+      <AppCard :title="t('tickets.radar.title')" :description="t('tickets.radar.desc')">
         <ul v-if="upcomingTickets.length" class="space-y-4">
           <li v-for="ticket in upcomingTickets" :key="ticket.id" class="flex items-start justify-between rounded-2xl border border-border bg-muted/40 px-4 py-3">
             <div class="space-y-1">
@@ -262,10 +290,10 @@
             </div>
           </li>
         </ul>
-        <p v-else class="text-sm text-muted-foreground">No deadlines coming up. Enjoy the calm.</p>
+        <p v-else class="text-sm text-muted-foreground">{{ t('tickets.radar.empty') }}</p>
       </AppCard>
 
-      <AppCard title="Status mix" description="Track flow and unblock work fast.">
+      <AppCard :title="t('tickets.statusMix.title')" :description="t('tickets.statusMix.desc')">
         <div class="space-y-4">
           <div v-for="option in statusBreakdownOptions" :key="option.value" class="space-y-1">
             <div class="flex items-center justify-between text-xs uppercase text-muted-foreground">
@@ -286,28 +314,28 @@
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-[12000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-lg">
         <div class="w-full max-w-xl rounded-3xl border border-border bg-card p-6 text-sm text-slate-600 shadow-2xl">
-        <h2 class="text-xl font-semibold text-slate-900">{{ editing ? 'Edit ticket' : 'New ticket' }}</h2>
+        <h2 class="text-xl font-semibold text-slate-900">{{ editing ? t('tickets.modal.editTitle') : t('tickets.modal.newTitle') }}</h2>
         <form class="mt-4 grid gap-4 sm:grid-cols-2" @submit.prevent="handleSubmit">
           <label class="space-y-1 sm:col-span-2">
-            <span class="text-xs uppercase text-slate-500">Title <span class="text-rose-500">*</span></span>
+            <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.title') }} <span class="text-rose-500">*</span></span>
             <input v-model="form.title" required class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm" />
             <p v-if="formErrors.title" class="text-[11px] text-rose-600">{{ formErrors.title }}</p>
           </label>
         <label class="space-y-1 sm:col-span-2">
-          <span class="text-xs uppercase text-slate-500">Description <span class="text-rose-500">*</span></span>
+          <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.description') }} <span class="text-rose-500">*</span></span>
           <textarea v-model="form.description" rows="3" required class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm"></textarea>
           <p v-if="formErrors.description" class="text-[11px] text-rose-600">{{ formErrors.description }}</p>
         </label>
         <label class="space-y-1">
-          <span class="text-xs uppercase text-slate-500">Project <span class="text-rose-500">*</span></span>
+          <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.project') }} <span class="text-rose-500">*</span></span>
           <select v-model="form.projectId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-            <option value="" disabled>Select project</option>
+            <option value="" disabled>{{ t('tickets.modal.project') }}</option>
             <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
           </select>
           <p v-if="formErrors.project" class="text-[11px] text-rose-600">{{ formErrors.project }}</p>
         </label>
         <label class="space-y-1">
-          <span class="text-xs uppercase text-slate-500">Priority <span class="text-rose-500">*</span></span>
+          <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.priority') }} <span class="text-rose-500">*</span></span>
           <select v-model="form.priority" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
             <option value="low">Low</option>
             <option value="medium">Medium</option>
@@ -316,7 +344,7 @@
             </select>
           </label>
           <label class="space-y-1">
-          <span class="text-xs uppercase text-slate-500">Type <span class="text-rose-500">*</span></span>
+          <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.type') }} <span class="text-rose-500">*</span></span>
           <select v-model="form.type" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
             <option value="bug">Bug</option>
             <option value="feature">Feature</option>
@@ -324,38 +352,38 @@
           </select>
         </label>
         <label class="space-y-1">
-          <span class="text-xs uppercase text-slate-500">Assignee</span>
+          <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.assignee') }}</span>
           <select v-model="form.assigneeId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
             <option :value="user.id" v-for="user in assigneeOptions" :key="user.id">{{ user.name }}</option>
           </select>
         </label>
         <label class="space-y-1">
-          <span class="text-xs uppercase text-slate-500">Epic</span>
+          <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.epic') }}</span>
           <select v-model="form.epicId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-            <option :value="undefined">No epic</option>
+            <option :value="undefined">{{ t('tickets.filters.all') }}</option>
             <option v-for="epic in epicsByProject" :key="epic.id" :value="epic.id">
               {{ epic.title }} ({{ epic.doneCount ?? 0 }}/{{ epic.totalCount ?? 0 }})
             </option>
           </select>
         </label>
         <label class="space-y-1">
-          <span class="text-xs uppercase text-slate-500">Start Date</span>
+          <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.startDate') }}</span>
           <input type="date" v-model="form.startDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm" />
         </label>
         <label class="space-y-1">
-          <span class="text-xs uppercase text-slate-500">Due Date</span>
+          <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.dueDate') }}</span>
           <input type="date" v-model="form.dueDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm" />
         </label>
           <div class="sm:col-span-2 flex justify-end gap-2">
-            <Button type="button" variant="ghost" @click="closeModal">Cancel</Button>
-            <Button type="submit">Save</Button>
+            <Button type="button" variant="ghost" @click="closeModal">{{ t('tickets.modal.cancel') }}</Button>
+            <Button type="submit">{{ t('tickets.modal.save') }}</Button>
           </div>
         </form>
         </div>
       </div>
     </Teleport>
 
-    <ConfirmModal :open="Boolean(confirming)" title="Delete ticket" message="This action cannot be undone." @cancel="confirming = null" @confirm="deleteTicket" />
+    <ConfirmModal :open="Boolean(confirming)" :title="t('tickets.confirmDeleteTitle')" :message="t('tickets.confirmDeleteMsg')" @cancel="confirming = null" @confirm="deleteTicket" />
     <div v-if="toast.open" class="fixed bottom-6 right-6 z-50">
       <div
         class="rounded-2xl px-4 py-3 text-sm shadow-lg transition"
@@ -377,6 +405,7 @@ import { Button } from '@/components/atoms/ui/button'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/atoms/ui/input'
 import { Search } from 'lucide-vue-next'
+import { PageHeroSkeleton, StatCardsSkeleton, CardGridSkeleton, TableSkeleton } from '@/components/molecules/skeletons'
 import { useTicketsStore } from '@/stores/tickets'
 import { useUsersStore } from '@/stores/users'
 import { useEpicsStore } from '@/stores/epics'
@@ -386,9 +415,14 @@ import { useDebounceFn } from '@vueuse/core'
 import { formatDate } from '@/utils/helpers'
 import type { CreateTicketPayload, Ticket } from '@/types/models'
 import type { TicketPriority, TicketType } from '@/utils/constants'
+import { Skeleton } from '@/components/atoms/ui/skeleton'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
+const localeParam = computed(() => route.params.locale as string | undefined)
+const localePath = (path = '') => (localeParam.value ? `/${localeParam.value}${path}` : path)
 const ticketsStore = useTicketsStore()
 const { tickets, loading: ticketsLoading, loadingMore, nextCursor } = storeToRefs(ticketsStore)
 const usersStore = useUsersStore()
@@ -409,15 +443,16 @@ const statusFilter = ref('all')
 const epicFilter = ref('all')
 const searchTerm = ref<string>((route.query.q as string) ?? '')
 const assigneeFilter = ref<'all' | string>('all')
-const statusOptions = [
-  { label: 'All', value: 'all' },
-  { label: 'Backlog', value: 'backlog' },
-  { label: 'Todo', value: 'todo' },
-  { label: 'In progress', value: 'in_progress' },
-  { label: 'Review', value: 'review' },
-  { label: 'Done', value: 'done' },
-]
-const statusBreakdownOptions = statusOptions.filter((option) => option.value !== 'all')
+const statusOptions = computed(() => [
+  { label: t('tickets.filters.all'), value: 'all' },
+  { label: t('tickets.filters.backlog'), value: 'backlog' },
+  { label: t('tickets.filters.todo'), value: 'todo' },
+  { label: t('tickets.filters.inProgress'), value: 'in_progress' },
+  { label: t('tickets.filters.review'), value: 'review' },
+  { label: t('tickets.filters.done'), value: 'done' },
+])
+const statusBreakdownOptions = computed(() => statusOptions.value.filter((option) => option.value !== 'all'))
+const pageLoading = computed(() => ticketsLoading.value && tickets.value.length === 0)
 const defaultProjectId = () => projects.value[0]?.id ?? ''
 type TicketFormState = {
   title: string
@@ -555,9 +590,9 @@ const percentOfTotal = (value) => {
 
 const assigneeLabel = (ticket) => {
   if (ticket.assigneeName) return ticket.assigneeName
-  if (!ticket.assigneeId) return 'Unassigned'
+  if (!ticket.assigneeId) return t('tickets.labels.unassigned')
   const assignee = users.value.find((user) => user.id === ticket.assigneeId)
-  return assignee?.name ?? 'Unassigned'
+  return assignee?.name ?? t('tickets.labels.unassigned')
 }
 
 const filteredTickets = computed(() => {
@@ -637,7 +672,7 @@ const loadMore = async () => {
 }
 
 const formatStatus = (status) => status?.replace('_', ' ') ?? '-'
-const projectDisplay = (projectId) => projectNameById.value[projectId] ?? 'Unassigned'
+const projectDisplay = (projectId) => projectNameById.value[projectId] ?? t('tickets.labels.unassigned')
 const priorityPillClass = (priority = 'medium') => {
   const map = {
     urgent: 'border-rose-400 bg-rose-50 text-rose-700',
@@ -647,7 +682,7 @@ const priorityPillClass = (priority = 'medium') => {
   }
   return map[priority] ?? 'border-slate-200 bg-slate-50 text-slate-600'
 }
-const dueLabel = (ticket) => (ticket.dueDate ? formatDate(ticket.dueDate) : 'Unscheduled')
+const dueLabel = (ticket) => (ticket.dueDate ? formatDate(ticket.dueDate) : t('tickets.labels.unscheduled'))
 
 const canManageTicket = (ticket: Ticket) => {
   const user = auth.currentUser
@@ -665,7 +700,7 @@ const canManageTicket = (ticket: Ticket) => {
   return false
 }
 
-const openDetail = (id) => router.push(`/tickets/${id}`)
+const openDetail = (id) => router.push(localePath(`/tickets/${id}`))
 
 const openCreate = () => {
   editing.value = false
@@ -686,7 +721,7 @@ const openCreate = () => {
 
 const editTicket = (ticket: Ticket) => {
   if (!canManageTicket(ticket)) {
-    showToast('Kamu tidak bisa mengedit tiket ini', 'error')
+    showToast(t('tickets.toast.noPermissionEdit'), 'error')
     return
   }
   editing.value = true
@@ -710,15 +745,15 @@ const handleSubmit = async () => {
   formErrors.project = undefined
   formErrors.description = undefined
   if (!form.title.trim()) {
-    formErrors.title = 'Title wajib diisi.'
+    formErrors.title = t('tickets.toast.errors.titleRequired')
     return
   }
   if (!form.projectId) {
-    formErrors.project = 'Pilih project terlebih dahulu.'
+    formErrors.project = t('tickets.toast.errors.projectRequired')
     return
   }
   if (!form.description.trim()) {
-    formErrors.description = 'Description wajib diisi.'
+    formErrors.description = t('tickets.toast.errors.descriptionRequired')
     return
   }
 
@@ -741,7 +776,7 @@ const handleSubmit = async () => {
       if (!form.startDate) updatePayload.clearStartDate = true
       if (!form.dueDate) updatePayload.clearDueDate = true
       await ticketsStore.updateTicket(editingId.value, updatePayload)
-      showToast('Ticket updated')
+      showToast(t('tickets.toast.updated'))
     } else {
       const payload: CreateTicketPayload = {
         projectId: form.projectId,
@@ -756,15 +791,15 @@ const handleSubmit = async () => {
         createdBy: auth.currentUser?.id ?? '',
       }
       if (!payload.createdBy) {
-        showToast('Please login to create tickets', 'error')
+        showToast(t('tickets.toast.needLogin'), 'error')
         return
       }
       await ticketsStore.createTicket(payload)
-      showToast('Ticket created')
+      showToast(t('tickets.toast.created'))
     }
     closeModal()
   } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Failed to save ticket', 'error')
+    showToast(error instanceof Error ? error.message : t('common.error'), 'error')
   }
 }
 
@@ -777,7 +812,7 @@ const closeModal = () => {
 
 const promptDelete = (ticket: Ticket) => {
   if (!canManageTicket(ticket)) {
-    showToast('Kamu tidak bisa menghapus tiket ini', 'error')
+    showToast(t('tickets.toast.noPermissionDelete'), 'error')
     return
   }
   confirming.value = ticket
@@ -785,15 +820,15 @@ const promptDelete = (ticket: Ticket) => {
 
 const deleteTicket = async () => {
   if (!confirming.value) return
-  try {
-    await ticketsStore.deleteTicket(confirming.value.id)
-    showToast('Ticket deleted')
-  } catch (error) {
-    showToast(error instanceof Error ? error.message : 'Failed to delete ticket', 'error')
-  } finally {
-    confirming.value = null
+    try {
+      await ticketsStore.deleteTicket(confirming.value.id)
+      showToast(t('tickets.toast.deleted'))
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t('common.error'), 'error')
+    } finally {
+      confirming.value = null
+    }
   }
-}
 
 const showToast = (message: string, variant = 'success') => {
   toast.message = message
