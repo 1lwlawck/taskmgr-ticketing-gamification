@@ -202,7 +202,7 @@ import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const route = useRoute()
-const { t } = useI18n()
+const { t, tm } = useI18n()
 const localeParam = computed(() => route.params.locale as string | undefined)
 const localePath = (path: string) => (localeParam.value ? `/${localeParam.value}${path}` : path)
 const projectsStore = useProjectsStore()
@@ -239,7 +239,7 @@ const errors = reactive<{ title?: string; description?: string; status?: string;
 const epicsByProject = computed(() => epicsStore.byProject(selectedProject.value))
 const currentProject = computed(() => projects.value.find((p) => p.id === selectedProject.value))
 const canManageEpics = computed(() => ['admin', 'project_manager'].includes(auth.currentUser?.role as string))
-const tips = computed(() => t('epics.tips') as unknown as string[])
+const tips = computed(() => tm('epics.tips') as string[])
 
 const progress = (epic: any) => {
   const done = epic.doneCount ?? 0

@@ -1,12 +1,45 @@
 import { defineStore } from 'pinia'
-import { TICKET_STATUSES, type TicketStatus } from '@/utils/constants'
+import { TICKET_STATUSES, type TicketStatus, type TicketPriority, type TicketType } from '@/utils/constants'
 import type { CreateTicketPayload, Ticket, TicketCommentPayload } from '@/types/models'
 import { api, handleApiError } from '@/lib/api'
 import { useProjectsStore } from './projects'
 import { useGamificationStore } from './gamification'
 import { useAuthStore } from './auth'
 
-const normalizeTicket = (payload: any): Ticket => ({
+interface RawTicketPayload {
+  id: string
+  projectId: string
+  title: string
+  description: string
+  status: TicketStatus
+  priority: TicketPriority
+  type: TicketType
+  reporterId?: string
+  epicId?: string
+  assigneeId?: string
+  assigneeName?: string
+  startDate?: string
+  dueDate?: string
+  createdAt?: string
+  created_at?: string
+  updatedAt?: string
+  updated_at?: string
+  history?: Array<{
+    id: string
+    text: string
+    timestamp: string
+    actorId?: string
+  }>
+  comments?: Array<{
+    id: string
+    author?: string
+    authorId?: string
+    text: string
+    timestamp: string
+  }>
+}
+
+const normalizeTicket = (payload: RawTicketPayload): Ticket => ({
   id: payload.id,
   projectId: payload.projectId,
   title: payload.title,
