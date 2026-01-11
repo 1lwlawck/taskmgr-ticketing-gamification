@@ -81,11 +81,8 @@ export const useReportsStore = defineStore('reports', () => {
       const { data } = await api.get<{ data: TicketTrend[] }>('/reports/tickets/trend', {
         params: { days },
       })
-      console.log('[DEBUG] ticketTrend response:', data)
       ticketTrend.value = data.data || []
-      console.log('[DEBUG] ticketTrend.value set to:', ticketTrend.value.length, 'items')
     } catch (e) {
-      console.error('[DEBUG] ticketTrend error:', e)
       handleApiError(e)
     }
   }
