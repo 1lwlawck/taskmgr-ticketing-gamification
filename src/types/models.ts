@@ -156,9 +156,12 @@ export interface XpEvent {
   timestamp: string
 }
 
+export type ToastType = 'success' | 'error' | 'warning' | 'info'
+
 export interface ToastPayload {
   title: string
   message: string
+  type?: ToastType
 }
 
 export interface Toast extends ToastPayload {
@@ -195,4 +198,153 @@ export interface AuthResponse {
   token: string
   refreshToken: string
   user: User
+}
+
+// ============ Reports Types ============
+export interface ReportSummary {
+  totalTickets: number
+  openTickets: number
+  closedTickets: number
+  totalProjects: number
+  activeProjects: number
+  totalUsers: number
+  totalEpics: number
+}
+
+export interface StatusBreakdown {
+  status: string
+  count: number
+}
+
+export interface PriorityBreakdown {
+  priority: string
+  count: number
+}
+
+export interface AssigneeBreakdown {
+  userId: string
+  userName: string
+  ticketCount: number
+  closedCount: number
+  openCount: number
+}
+
+export interface TeamPerformance {
+  userId: string
+  userName: string
+  totalXp: number
+  level: number
+  ticketsClosed: number
+  currentStreak: number
+  lastActiveAt?: string
+}
+
+export interface TicketTrend {
+  date: string
+  created: number
+  closed: number
+}
+
+// ============ Calendar Types ============
+export interface CalendarEvent {
+  id: string
+  title: string
+  type: 'ticket_deadline' | 'epic_start' | 'epic_end'
+  date: string
+  projectId?: string
+  projectName?: string
+  status?: string
+  priority?: string
+}
+
+export interface CalendarFilter {
+  start?: string
+  end?: string
+  projectId?: string
+  type?: 'ticket' | 'epic' | 'all'
+}
+
+// ============ Team Types ============
+export interface TeamMember {
+  id: string
+  name: string
+  username: string
+  role: string
+  avatarUrl?: string
+  projectCount: number
+  ticketCount: number
+  totalXp: number
+  level: number
+  joinedAt: string
+}
+
+export interface TeamProjectMember {
+  userId: string
+  userName: string
+  projectId: string
+  projectName: string
+  role: string
+}
+
+// ============ Achievements Types ============
+export interface Achievement {
+  id: string
+  name: string
+  description: string
+  icon: string
+  category: 'tickets' | 'streaks' | 'xp' | 'community'
+  threshold: number
+  xpReward: number
+}
+
+export interface AchievementProgress {
+  achievementId: string
+  name: string
+  description: string
+  icon: string
+  current: number
+  target: number
+  percentage: number
+  unlocked: boolean
+}
+
+// ============ Challenges Types ============
+export interface Challenge {
+  id: string
+  title: string
+  description: string
+  type: 'tickets' | 'xp' | 'streak' | 'comments'
+  target: number
+  xpReward: number
+  startDate: string
+  endDate: string
+  active: boolean
+}
+
+export interface UserChallenge {
+  challengeId: string
+  challenge: Challenge
+  userId: string
+  current: number
+  completed: boolean
+  percentage: number
+  completedAt?: string
+}
+
+// ============ Activity Types ============
+export interface ActivityItem {
+  id: string
+  userId?: string
+  userName?: string
+  action: string
+  details?: string
+  entityType?: 'ticket' | 'project' | 'epic' | 'comment'
+  entityId?: string
+  createdAt: string
+}
+
+export interface ActivityFilter {
+  entityType?: string
+  limit?: number
+  cursor?: string
 }

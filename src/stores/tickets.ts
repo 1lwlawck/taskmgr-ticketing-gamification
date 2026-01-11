@@ -117,16 +117,24 @@ export const useTicketsStore = defineStore('tickets', {
       status?: string
       epicId?: string
       q?: string
+      cursor?: string | null
+      limit?: number
     }) {
-      const { force = false, append = false } = options || {}
+      const { force = false, append = false, cursor = null, limit = 50 } = options || {}
       const isReset = !append
-      if (!force && !isReset && !this.nextCursor) return
+      if (!force && !isReset && !this.nextCursor && !cursor) return
       if (isReset) {
-        this.nextCursor = null
-        this.tickets = []
+        // Only reset nextCursor if we are starting a fresh search (no explicit cursor)
+        if (cursor === undefined) this.nextCursor = null
+        // We generally replace tickets on reset, unless using append
+        // Background refresh: Don't clear if we have data (unless needed)
+        if (!append && this.tickets.length === 0) this.tickets = []
       }
       const isFirstLoad = isReset && !append
-      this.loading = isFirstLoad
+      // Background Refresh: Only show loading (skeleton) if we have no data
+      if (this.tickets.length === 0) {
+        this.loading = isFirstLoad
+      }
       this.loadingMore = append
 
       const query = {
@@ -138,18 +146,20 @@ export const useTicketsStore = defineStore('tickets', {
       }
       this.currentQuery = query
 
-      const params: Record<string, any> = { limit: 50 }
+      const params: Record<string, any> = { limit }
       if (query.projectId) params.projectId = query.projectId
       if (query.assigneeId) params.assigneeId = query.assigneeId
       if (query.status) params.status = query.status
       if (query.epicId) params.epicId = query.epicId
       if (query.q) params.q = query.q
-      if (append && this.nextCursor) params.cursor = this.nextCursor
+      if (cursor) params.cursor = cursor
+      else if (append && this.nextCursor) params.cursor = this.nextCursor
 
       try {
         const { data } = await api.get('/tickets', { params })
         const body = data as any
-        const list = (body?.data ?? body) as any[]
+        const raw = body?.data ?? body
+        const list = Array.isArray(raw) ? raw : []
         const normalized = list.map(normalizeTicket)
         if (append) {
           const existing = new Set(this.tickets.map((t) => t.id))

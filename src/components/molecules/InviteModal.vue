@@ -27,7 +27,7 @@
           <button type="button" class="rounded-md px-4 py-2 text-slate-400 hover:text-slate-900" @click="$emit('close')">Cancel</button>
           <button
             type="submit"
-            class="rounded-md border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 px-4 py-2 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+            class="rounded-md border-0 bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
           >
             Generate
           </button>

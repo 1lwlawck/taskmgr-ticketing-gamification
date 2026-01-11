@@ -33,7 +33,10 @@ export const useGamificationStore = defineStore('gamification', {
   actions: {
     async fetchStats(userId: string) {
       if (!userId) return
-      this.loading = true
+      // Background Refresh: Only show loading if we haven't fetched for this user yet
+      if (!this.userStats[userId]) {
+        this.loading = true
+      }
       try {
         const { data } = await api.get(`/gamification/stats/${userId}`)
         const body = (data as any).data ?? data
@@ -48,6 +51,17 @@ export const useGamificationStore = defineStore('gamification', {
     async fetchEvents(options?: { userId?: string; cursor?: string; limit?: number; append?: boolean }) {
       const { userId, cursor, limit = 50, append = false } = options || {}
       if (append && !this.eventsNextCursor) return
+      // Background Refresh: Only show global loading on first empty load (not append)
+      // Note: We don't have a separate 'eventsLoading' state, using global 'loading'
+      // which might conflict with fetchStats. ideally split them but for now:
+      if (!append && this.xpEvents.length === 0) {
+        // Only set if we really have no events
+         // But wait, fetchStats also uses this.loading.
+         // Let's assume loading is shared global for "page loading".
+         // It's safer to not set it if we have *something*.
+      }
+      // Actually, let's keep it simple. If we have events, don't set global loading.
+      
       const params: Record<string, any> = { limit }
       if (userId) params.userId = userId
       if (append && this.eventsNextCursor) params.cursor = this.eventsNextCursor

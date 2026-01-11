@@ -15,7 +15,7 @@
             class="relative h-24 w-24 overflow-hidden rounded-full shadow-2xl ring-4 ring-indigo-100 ring-offset-4 ring-offset-slate-900"
             :style="avatarGradient(currentUser?.name)"
           >
-            <span class="absolute inset-0 bg-gradient-to-br from-indigo-500 via-sky-400 to-emerald-400 opacity-80"></span>
+            <span class="absolute inset-0 bg-black/10"></span>
             <span class="relative flex h-full w-full items-center justify-center text-3xl font-semibold uppercase text-white drop-shadow-lg">
               {{ initials }}
             </span>
@@ -125,18 +125,14 @@
             <span class="text-xs uppercase text-muted-foreground">{{ t('profile.bio') }}</span>
             <textarea v-model="form.bio" rows="4" class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"></textarea>
           </label>
-          <label class="block space-y-1">
+          <div class="block space-y-1">
             <span class="text-xs uppercase text-muted-foreground">{{ t('common.language') }}</span>
-            <select
+            <Select
               v-model="selectedLocale"
-              class="w-full rounded-2xl border border-border bg-white px-3 py-2 text-foreground shadow-sm"
+              :options="localeOptions"
               @change="handleLocaleChange"
-            >
-              <option v-for="opt in availableLocales" :key="opt" :value="opt">
-                {{ opt === 'en' ? t('common.english') : t('common.indonesian') }}
-              </option>
-            </select>
-          </label>
+            />
+          </div>
           <Button
             type="submit"
             class="w-full border-0 bg-[linear-gradient(135deg,#0b1224,#10182f,#1c2650)] text-white shadow-md shadow-indigo-900/30 transition hover:brightness-110 hover:shadow-lg"
@@ -192,6 +188,7 @@ import { useUsersStore } from '@/stores/users'
 import { useGamificationStore } from '@/stores/gamification'
 import { supportedLocales, type SupportedLocale, setStoredLocale } from '@/i18n'
 import { PageHeroSkeleton, CardGridSkeleton } from '@/components/molecules/skeletons'
+import Select from '@/components/ui/select/Select.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -205,6 +202,13 @@ const selectedLocale = ref<SupportedLocale>(
   (route.params.locale as SupportedLocale | undefined) ?? (locale.value as SupportedLocale)
 )
 const pageLoading = computed(() => gamification.loading || !currentUser.value)
+
+const localeOptions = computed(() =>
+  availableLocales.map((opt) => ({
+    value: opt,
+    label: opt === 'en' ? t('common.english') : t('common.indonesian')
+  }))
+)
 const saved = ref(false)
 const passwordSaved = ref(false)
 const pwdSubmitting = ref(false)
@@ -241,7 +245,9 @@ const avatarGradient = (seed = '') => {
     ['#6366F1', '#22D3EE', '#34D399'],
     ['#7C3AED', '#60A5FA', '#2DD4BF'],
     ['#06B6D4', '#0EA5E9', '#8B5CF6'],
-    ['#F59E0B', '#F97316', '#EC4899'],
+    ['#06B6D4', '#0EA5E9', '#8B5CF6'],
+    // ['#F59E0B', '#F97316', '#EC4899'], // Removed (Orange)
+    ['#4F46E5', '#818CF8', '#A5B4FC'], // Added (Indigo/Blue)
   ]
   const hash = seed.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
   const colors = palette[hash % palette.length]

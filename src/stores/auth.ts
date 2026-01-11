@@ -87,14 +87,39 @@ export const useAuthStore = defineStore('auth', {
     async register(payload: RegisterPayload) {
       this.loading = true
       try {
-        const { data } = await api.post<AuthResponse>('/auth/register', payload)
+        const { data } = await api.post('/auth/register', payload)
         const body = this.unwrap(data, null)
-        this.setSession(body.token, body.refreshToken, body.user)
-        return this.currentUser
+        // Registration now returns RegisterResponse (needsVerification, userId)
+        // Don't set session - user needs to verify email first
+        return body as { message: string; needsVerification: boolean; userId: string }
       } catch (error) {
         throw handleApiError(error)
       } finally {
         this.loading = false
+      }
+    },
+    async verifyEmail(token: string) {
+      try {
+        const { data } = await api.post('/auth/verify-email', { token })
+        return this.unwrap(data, null)
+      } catch (error) {
+        throw handleApiError(error)
+      }
+    },
+    async resendVerification(userId: string) {
+      try {
+        const { data } = await api.post('/auth/resend-verification', { userId })
+        return this.unwrap(data, null)
+      } catch (error) {
+        throw handleApiError(error)
+      }
+    },
+    async updateUnverifiedEmail(userId: string, password: string, newEmail: string) {
+      try {
+        await api.post('/auth/update-unverified-email', { userId, password, newEmail })
+        return true
+      } catch (error) {
+        throw handleApiError(error)
       }
     },
     async refresh() {

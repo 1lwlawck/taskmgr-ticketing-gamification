@@ -38,7 +38,10 @@ export const useUsersStore = defineStore('users', {
   },
   actions: {
     async fetchUsers() {
-      this.loading = true
+      // Background Refresh
+      if (this.users.length === 0) {
+        this.loading = true
+      }
       try {
         const { data } = await api.get('/users')
         this.users = (data?.data ?? []).map(mapUser)

@@ -16,7 +16,11 @@ export const useEpicsStore = defineStore('epics', {
   actions: {
     async fetchByProject(projectId: string) {
       if (!projectId) return []
-      this.loading = true
+      // Background Refresh: Only show loading if we don't have epics for this project
+      const existing = this.byProject(projectId)
+      if (existing.length === 0) {
+        this.loading = true
+      }
       try {
         const { data } = await api.get(`/projects/${projectId}/epics`)
         const payload = (data as any)?.data ?? data ?? []
@@ -37,7 +41,9 @@ export const useEpicsStore = defineStore('epics', {
     },
     async fetchEpic(id: string) {
       if (!id) return null
-      this.loading = true
+      // Background Refresh
+      const existing = this.items.find((e) => e.id === id)
+      if (!existing) this.loading = true
       try {
         const { data } = await api.get(`/epics/${id}`)
         const epic = (data as any)?.data ?? data

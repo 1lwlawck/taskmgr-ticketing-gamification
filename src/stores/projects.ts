@@ -51,31 +51,37 @@ export const useProjectsStore = defineStore('projects', {
     getById: (state) => (id: string) => state.projects.find((project) => project.id === id),
   },
   actions: {
-    async fetchProjects(options?: { force?: boolean; q?: string; status?: string; append?: boolean }) {
-      const { force = false, q, status, append = false } = options || {}
+    async fetchProjects(options?: { force?: boolean; q?: string; status?: string; append?: boolean; cursor?: string | null; limit?: number }) {
+      const { force = false, q, status, append = false, cursor = null, limit = 50 } = options || {}
       const isReset = !append
-      if (!force && !isReset && !this.nextCursor) return
+      if (!force && !isReset && !this.nextCursor && !cursor) return
       if (isReset) {
-        this.nextCursor = null
-        this.projects = []
+        if (cursor === undefined) this.nextCursor = null
+        // Background refresh: Don't clear if we have data
+        if (!append && this.projects.length === 0) this.projects = []
       }
       const isFirstLoad = isReset && !append
-      this.loading = isFirstLoad
+      // Background Refresh: Only show loading if we have no data
+      if (this.projects.length === 0) {
+        this.loading = isFirstLoad
+      }
       this.loadingMore = append
 
       const queryQ = q ?? this.currentQuery.q ?? ''
       const queryStatus = status ?? this.currentQuery.status ?? ''
       this.currentQuery = { q: queryQ, status: queryStatus }
 
-      const params: Record<string, any> = { limit: 50 }
+      const params: Record<string, any> = { limit }
       if (queryQ) params.q = queryQ
       if (queryStatus) params.status = queryStatus
-      if (append && this.nextCursor) params.cursor = this.nextCursor
+      if (cursor) params.cursor = cursor
+      else if (append && this.nextCursor) params.cursor = this.nextCursor
 
       try {
         const { data } = await api.get('/projects', { params })
         const body = data as any
-        const list = (body?.data ?? body) as any[]
+        const raw = body?.data ?? body
+        const list = Array.isArray(raw) ? raw : []
         const normalized = list.map(normalizeProject)
         if (append) {
           const existingIds = new Set(this.projects.map((p) => p.id))

@@ -361,7 +361,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import XPBar from '@/components/molecules/XPBar.vue'
@@ -394,6 +394,14 @@ const { userStats, xpEvents, eventsNextCursor } = storeToRefs(gamification)
 const eventsLoadingMore = ref(false)
 const ticketsStore = useTicketsStore()
 const pageLoading = computed(() => gamification.loading || ticketsStore.loading || !currentUser.value)
+
+onMounted(() => {
+  if (currentUser.value?.id) {
+    gamification.fetchStats(currentUser.value.id)
+    gamification.fetchEvents({ userId: currentUser.value.id })
+  }
+  ticketsStore.fetchTickets()
+})
 
 const stats = computed(() => {
   if (!currentUser.value) return null

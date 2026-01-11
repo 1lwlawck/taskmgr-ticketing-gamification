@@ -8,10 +8,15 @@
   </section>
 
   <section v-else class="space-y-8">
-    <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-6 text-white shadow-2xl">
-      <div class="pointer-events-none absolute -right-20 -top-12 h-52 w-52 rounded-full bg-white/15 blur-3xl"></div>
-      <div class="pointer-events-none absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-indigo-500/30 blur-3xl"></div>
-      <div class="relative flex flex-wrap items-center justify-between gap-4">
+    <div class="relative rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-6 text-white shadow-2xl">
+      <!-- Background clipped -->
+      <div class="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+        <div class="absolute -right-20 -top-12 h-52 w-52 rounded-full bg-white/15 blur-3xl"></div>
+        <div class="absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-indigo-500/30 blur-3xl"></div>
+      </div>
+
+      <!-- Content visible -->
+      <div class="relative z-10 flex flex-wrap items-center justify-between gap-4">
         <div class="space-y-2">
           <p class="text-xs uppercase tracking-[0.4em] text-white/60">{{ t('epics.heroLabel') }}</p>
           <h1 class="text-3xl font-semibold">{{ t('epics.heroTitle') }}</h1>
@@ -20,9 +25,11 @@
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-          <select v-model="selectedProject" class="rounded-md border border-white bg-white px-10 py-2 text-sm text-black shadow-black inner">
-            <option :value="project.id" v-for="project in projects" :key="project.id" class=" rounded-md  bg-white/30 text-black">{{ project.name }}</option>
-          </select>
+          <Select
+            v-model="selectedProject"
+            :options="projectSelectOptions"
+            class="min-w-[180px]"
+          />
           <button class="rounded-md border border-white/30 bg-white/15 px-3 py-2 text-sm text-white hover:bg-white/25" @click="fetchEpics">
             {{ t('epics.refresh') }}
           </button>
@@ -58,27 +65,25 @@
               ></textarea>
               <p v-if="errors.description" class="text-[11px] text-rose-600">{{ errors.description }}</p>
             </label>
-            <label class="space-y-1">
+            <div class="space-y-1">
               <span class="text-xs uppercase text-muted-foreground">{{ t('epics.form.status') }} <span class="text-rose-500">*</span></span>
-              <select v-model="form.status" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm">
-                <option v-for="status in STATUS_OPTIONS" :key="status" :value="status">{{ status }}</option>
-              </select>
+              <Select v-model="form.status" :options="statusSelectOptions" />
               <p v-if="errors.status" class="text-[11px] text-rose-600">{{ errors.status }}</p>
-            </label>
-            <label class="space-y-1">
+            </div>
+            <div class="space-y-1">
               <span class="text-xs uppercase text-muted-foreground">{{ t('epics.form.start') }}</span>
-              <input type="date" v-model="form.startDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm" />
-            </label>
-            <label class="space-y-1">
+              <DatePicker v-model="form.startDate" :placeholder="t('epics.form.start')" />
+            </div>
+            <div class="space-y-1">
               <span class="text-xs uppercase text-muted-foreground">{{ t('epics.form.due') }}</span>
-              <input type="date" v-model="form.dueDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm shadow-sm" />
+              <DatePicker v-model="form.dueDate" :placeholder="t('epics.form.due')" />
               <p v-if="errors.dates" class="text-[11px] text-rose-600">{{ errors.dates }}</p>
-            </label>
+            </div>
             <div class="md:col-span-2 flex justify-end gap-2">
               <button type="button" class="rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground" @click="resetForm">{{ t('epics.form.clear') }}</button>
               <button
                 type="submit"
-                class="rounded-xl border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 px-4 py-2 text-sm text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110 disabled:opacity-50"
+                class="rounded-xl border-0 bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110 disabled:opacity-50"
                 :disabled="!canManageEpics || !selectedProject || !form.title.trim()"
               >
                 {{ editingId ? t('epics.form.submitSave') : t('epics.form.submitCreate') }}
@@ -198,6 +203,8 @@ import { formatDate } from '@/utils/helpers'
 import ConfirmModal from '@/components/molecules/ConfirmModal.vue'
 import { TICKET_STATUSES, type TicketStatus } from '@/utils/constants'
 import { PageHeroSkeleton, CardGridSkeleton } from '@/components/molecules/skeletons'
+import Select from '@/components/ui/select/Select.vue'
+import DatePicker from '@/components/ui/date-picker/DatePicker.vue'
 import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
@@ -240,6 +247,14 @@ const epicsByProject = computed(() => epicsStore.byProject(selectedProject.value
 const currentProject = computed(() => projects.value.find((p) => p.id === selectedProject.value))
 const canManageEpics = computed(() => ['admin', 'project_manager'].includes(auth.currentUser?.role as string))
 const tips = computed(() => tm('epics.tips') as string[])
+
+const projectSelectOptions = computed(() =>
+  projects.value.map((p) => ({ value: p.id, label: p.name }))
+)
+
+const statusSelectOptions = computed(() =>
+  STATUS_OPTIONS.map((s) => ({ value: s, label: s.replace('_', ' ') }))
+)
 
 const progress = (epic: any) => {
   const done = epic.doneCount ?? 0
@@ -290,7 +305,10 @@ const showToast = (message: string, variant: 'success' | 'error' = 'success') =>
 
 const fetchEpics = async () => {
   if (!selectedProject.value) return
-  loading.value = true
+  // Background Refresh: Only show skeleton if we have no data
+  if (epicsByProject.value.length === 0) {
+    loading.value = true
+  }
   await epicsStore.fetchByProject(selectedProject.value)
   loading.value = false
 }

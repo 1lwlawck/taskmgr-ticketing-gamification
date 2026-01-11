@@ -42,17 +42,28 @@
               <p v-if="errors.name" class="text-[11px] text-rose-600">{{ errors.name }}</p>
             </div>
             <div class="space-y-1">
+              <label class="text-xs font-semibold uppercase text-muted-foreground">{{ t('auth.email') || 'Email' }} <span class="text-rose-500">*</span></label>
+              <Input v-model="form.email" type="email" :placeholder="t('auth.emailPlaceholder') || 'your@email.com'" required class="bg-transparent" />
+              <p v-if="errors.email" class="text-[11px] text-rose-600">{{ errors.email }}</p>
+            </div>
+            <div class="space-y-1">
               <label class="text-xs font-semibold uppercase text-muted-foreground">{{ t('auth.username') }} <span class="text-rose-500">*</span></label>
               <Input v-model="form.username" :placeholder="t('auth.username')" required class="bg-transparent" />
               <p v-if="errors.username" class="text-[11px] text-rose-600">{{ errors.username }}</p>
             </div>
             <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase text-muted-foreground">{{ t('auth.password') }} <span class="text-rose-500">*</span></label>
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-semibold uppercase text-muted-foreground">{{ t('auth.password') }} <span class="text-rose-500">*</span></label>
+                <button type="button" @click="generateStrongPassword" class="flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300 transition-colors">
+                  <Wand2 class="h-3 w-3" />
+                  {{ t('auth.generatePassword') }}
+                </button>
+              </div>
               <div class="relative">
                 <Input
                   v-model="form.password"
                   :type="showPassword ? 'text' : 'password'"
-                  minlength="4"
+                  minlength="8"
                   :placeholder="t('auth.password')"
                   required
                   class="bg-transparent pr-10"
@@ -66,7 +77,62 @@
                   <span class="sr-only">{{ showPassword ? t('auth.hidePassword') : t('auth.showPassword') }}</span>
                 </button>
               </div>
+              
+              <!-- Generated Password Preview -->
+              <div v-if="generatedPassword && form.password !== generatedPassword" class="mt-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[10px] font-medium text-indigo-300 uppercase tracking-wider">{{ t('auth.passwordGeneratorTitle') }}</span>
+                  <button type="button" @click="copyToClipboard" class="flex items-center gap-1 text-[10px] text-indigo-400 hover:text-white transition">
+                    <component :is="hasCopied ? Check : Copy" class="h-3 w-3" />
+                    {{ hasCopied ? t('auth.passwordCopied') : t('auth.copyPassword') }}
+                  </button>
+                </div>
+                <div class="flex items-center gap-2">
+                  <code class="flex-1 rounded bg-black/30 px-2 py-1.5 text-xs font-mono text-indigo-200 break-all select-all">
+                    {{ generatedPassword }}
+                  </code>
+                  <Button type="button" size="sm" variant="outline" class="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 hover:text-white border-0 text-white" @click="useGeneratedPassword">
+                    {{ t('auth.useThisPassword') }}
+                  </Button>
+                </div>
+              </div>
+
+              <!-- Password Strength Indicator -->
+              <div v-if="form.password" class="mt-2 space-y-1">
+                <div class="flex gap-1">
+                  <div 
+                    v-for="i in 6" 
+                    :key="i" 
+                    class="h-1 flex-1 rounded-full transition-colors"
+                    :class="i <= passwordStrength.score ? passwordStrength.color : 'bg-slate-200'"
+                  ></div>
+                </div>
+                <p class="text-[10px] text-muted-foreground flex justify-between">
+                  <span>{{ t('auth.passwordStrengthLabel') || 'Password strength' }}:</span>
+                  <span :class="{'text-red-500': passwordStrength.score <= 2, 'text-yellow-600': passwordStrength.score > 2 && passwordStrength.score <= 4, 'text-green-600': passwordStrength.score > 4}">
+                    {{ passwordStrength.label }}
+                  </span>
+                </p>
+              </div>
+              <!-- Password Requirements Hint -->
+              <p class="text-[10px] text-muted-foreground/70 mt-1">
+                {{ t('auth.passwordHint') || 'Min 8 chars, uppercase, lowercase, number & special char' }}
+              </p>
               <p v-if="errors.password" class="text-[11px] text-rose-600">{{ errors.password }}</p>
+            </div>
+            
+            <div class="space-y-1">
+              <label class="text-xs font-semibold uppercase text-muted-foreground">{{ t('auth.confirmPassword') || 'Confirm Password' }} <span class="text-rose-500">*</span></label>
+              <div class="relative">
+                <Input
+                  v-model="form.confirmPassword"
+                  :type="showPassword ? 'text' : 'password'"
+                  :placeholder="t('auth.confirmPasswordPlaceholder') || 'Re-enter your password'"
+                  required
+                  class="bg-transparent"
+                />
+              </div>
+              <p v-if="errors.confirmPassword" class="text-[11px] text-rose-600">{{ errors.confirmPassword }}</p>
             </div>
             <p v-if="error" class="text-xs text-destructive text-right">{{ error }}</p>
             <Button type="submit" class="w-full" size="lg">{{ t('auth.submitRegister') }}</Button>
@@ -84,40 +150,158 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { Input } from '@/components/atoms/ui/input'
 import { Button } from '@/components/atoms/ui/button'
-import { Eye, EyeOff } from 'lucide-vue-next'
+import { Eye, EyeOff, Wand2, Copy, Check } from 'lucide-vue-next'
 
 const router = useRouter()
 const { t } = useI18n()
 const auth = useAuthStore()
-const form = reactive({ name: '', username: '', password: '' })
+const form = reactive({ name: '', email: '', username: '', password: '', confirmPassword: '' })
 const error = ref('')
 const showPassword = ref(false)
-const errors = reactive<{ name?: string; username?: string; password?: string }>({})
+const generatedPassword = ref('')
+const hasCopied = ref(false)
+const errors = reactive<{ name?: string; email?: string; username?: string; password?: string; confirmPassword?: string }>({})
 
 const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
 
+const generateStrongPassword = () => {
+  const length = 16
+  const charset = {
+    upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    lower: 'abcdefghijklmnopqrstuvwxyz',
+    number: '0123456789',
+    special: '!@#$%^&*()_+~`|}{[]:;?><,./-='
+  }
+  
+  let password = ''
+  // Ensure at least one of each required type
+  password += charset.upper.charAt(Math.floor(Math.random() * charset.upper.length))
+  password += charset.lower.charAt(Math.floor(Math.random() * charset.lower.length))
+  password += charset.number.charAt(Math.floor(Math.random() * charset.number.length))
+  password += charset.special.charAt(Math.floor(Math.random() * charset.special.length))
+  
+  const allChars = charset.upper + charset.lower + charset.number + charset.special
+  for (let i = 4; i < length; i++) {
+    password += allChars.charAt(Math.floor(Math.random() * allChars.length))
+  }
+  
+  // Shuffle password
+  password = password.split('').sort(() => 0.5 - Math.random()).join('')
+  
+  generatedPassword.value = password
+  // Automatically copy to clipboard for convenience
+  copyToClipboard()
+}
+
+const useGeneratedPassword = () => {
+  form.password = generatedPassword.value
+  form.confirmPassword = generatedPassword.value
+  generatedPassword.value = '' // Hide the preview once used
+}
+
+const copyToClipboard = async () => {
+  if (generatedPassword.value) {
+    try {
+      await navigator.clipboard.writeText(generatedPassword.value)
+      hasCopied.value = true
+      setTimeout(() => {
+        hasCopied.value = false
+      }, 2000)
+    } catch (e) {
+      console.error('Failed to copy', e)
+    }
+  }
+}
+
+// Validation Rules
+const validateName = (name: string): string | undefined => {
+  if (!name) return t('auth.nameRequired')
+  if (name.length < 2) return t('auth.nameMinLength') || 'Name must be at least 2 characters'
+  if (name.length > 50) return t('auth.nameMaxLength') || 'Name must be less than 50 characters'
+  return undefined
+}
+
+const validateUsername = (username: string): string | undefined => {
+  if (!username) return t('auth.usernameRequired')
+  if (username.length < 3) return t('auth.usernameMinLength') || 'Username must be at least 3 characters'
+  if (username.length > 30) return t('auth.usernameMaxLength') || 'Username must be less than 30 characters'
+  if (!/^[a-zA-Z]/.test(username)) return t('auth.usernameMustStartWithLetter') || 'Username must start with a letter'
+  if (!/^[a-zA-Z0-9_.]+$/.test(username)) return t('auth.usernameInvalidChars') || 'Username can only contain letters, numbers, underscores, and dots'
+  return undefined
+}
+
+const validatePassword = (password: string): string | undefined => {
+  if (!password) return t('auth.passwordRequired')
+  if (password.length < 8) return t('auth.passwordMinLength') || 'Password must be at least 8 characters'
+  if (!/[A-Z]/.test(password)) return t('auth.passwordNeedsUppercase') || 'Password must contain at least one uppercase letter'
+  if (!/[a-z]/.test(password)) return t('auth.passwordNeedsLowercase') || 'Password must contain at least one lowercase letter'
+  if (!/[0-9]/.test(password)) return t('auth.passwordNeedsNumber') || 'Password must contain at least one number'
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) return t('auth.passwordNeedsSpecial') || 'Password must contain at least one special character (!@#$%^&*)'
+  return undefined
+}
+
+const validateConfirmPassword = (confirmPassword: string, password: string): string | undefined => {
+  if (!confirmPassword) return t('auth.confirmPasswordRequired') || 'Please confirm your password'
+  if (confirmPassword !== password) return t('auth.passwordMismatch') || 'Passwords do not match'
+  return undefined
+}
+
+// Password strength indicator
+const passwordStrength = computed(() => {
+  const p = form.password
+  if (!p) return { score: 0, label: '', color: '' }
+  
+  let score = 0
+  if (p.length >= 8) score++
+  if (p.length >= 12) score++
+  if (/[A-Z]/.test(p)) score++
+  if (/[a-z]/.test(p)) score++
+  if (/[0-9]/.test(p)) score++
+  if (/[!@#$%^&*(),.?":{}|<>]/.test(p)) score++
+  
+  if (score <= 2) return { score, label: t('auth.passwordWeak') || 'Weak', color: 'bg-red-500' }
+  if (score <= 4) return { score, label: t('auth.passwordMedium') || 'Medium', color: 'bg-yellow-500' }
+  return { score, label: t('auth.passwordStrong') || 'Strong', color: 'bg-green-500' }
+})
+
+const validateEmail = (email: string): string | undefined => {
+  if (!email) return t('auth.emailRequired') || 'Email is required'
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) return t('auth.emailInvalid') || 'Invalid email format'
+  return undefined
+}
+
 const handleRegister = async () => {
-  errors.name = errors.username = errors.password = undefined
-  if (!form.name || !form.username || !form.password) {
-    if (!form.name) errors.name = t('auth.nameRequired')
-    if (!form.username) errors.username = t('auth.usernameRequired')
-    if (!form.password) errors.password = t('auth.passwordRequired')
-    error.value = ''
+  // Reset errors
+  errors.name = errors.email = errors.username = errors.password = errors.confirmPassword = undefined
+  error.value = ''
+  
+  // Validate all fields
+  errors.name = validateName(form.name)
+  errors.email = validateEmail(form.email)
+  errors.username = validateUsername(form.username)
+  errors.password = validatePassword(form.password)
+  errors.confirmPassword = validateConfirmPassword(form.confirmPassword, form.password)
+  
+  // If any validation errors, stop
+  if (errors.name || errors.email || errors.username || errors.password || errors.confirmPassword) {
     return
   }
+  
   try {
-    error.value = ''
-    await auth.register(form)
-    router.push('/dashboard')
-  } catch (err) {
+    const { confirmPassword, ...registerPayload } = form
+    const result = await auth.register(registerPayload)
+    // Redirect to verification pending page with userId
+    router.push({ path: '/verification-pending', query: { userId: result.userId, email: form.email } })
+  } catch (err: any) {
     error.value = err.message
   }
 }

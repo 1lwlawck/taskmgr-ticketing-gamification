@@ -8,7 +8,7 @@ import ProjectDetail from '@/pages/ProjectDetail.vue'
 import Tickets from '@/pages/Tickets.vue'
 import TicketDetail from '@/pages/TicketDetail.vue'
 import Leaderboard from '@/pages/Leaderboard.vue'
-import AdminUsers from '@/pages/AdminUsers.vue'
+// import AdminUsers from '@/pages/AdminUsers.vue' // Removed
 import Profile from '@/pages/Profile.vue'
 import JoinByCode from '@/pages/JoinByCode.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -31,6 +31,18 @@ const router = createRouter({
       name: 'register',
       component: Register,
       meta: { guestOnly: true, title: 'Register' },
+    },
+    {
+      path: withLocale('/verify-email'),
+      name: 'verify-email',
+      component: () => import('@/pages/VerifyEmail.vue'),
+      meta: { guestOnly: true, title: 'Verify Email' },
+    },
+    {
+      path: withLocale('/verification-pending'),
+      name: 'verification-pending',
+      component: () => import('@/pages/VerificationPending.vue'),
+      meta: { guestOnly: true, title: 'Verification Pending' },
     },
     {
       path: withLocale(''),
@@ -64,14 +76,19 @@ const router = createRouter({
           props: true,
           meta: { title: 'Epic Detail' },
         },
-        {
-          path: 'admin/users',
-          name: 'admin-users',
-          component: AdminUsers,
-          meta: { role: 'admin', title: 'Admin Users' },
-        },
+        // Admin Users route removed (consolidated with roles)
         { path: 'profile', name: 'profile', component: Profile, meta: { title: 'Profile' } },
         { path: 'join', name: 'join', component: JoinByCode, meta: { title: 'Join Project' } },
+        { path: 'reports', name: 'reports', component: () => import('@/pages/Reports.vue'), meta: { title: 'Reports' } },
+        { path: 'calendar', name: 'calendar', component: () => import('@/pages/Calendar.vue'), meta: { title: 'Calendar' } },
+        { path: 'kanban', name: 'kanban', component: () => import('@/pages/Kanban.vue'), meta: { title: 'Kanban' } },
+        { path: 'team', name: 'team', component: () => import('@/pages/Team.vue'), meta: { title: 'Team' } },
+        { path: 'achievements', name: 'achievements', component: () => import('@/pages/Achievements.vue'), meta: { title: 'Achievements' } },
+        { path: 'challenges', name: 'challenges', component: () => import('@/pages/Challenges.vue'), meta: { title: 'Challenges' } },
+        { path: 'settings', name: 'settings', component: () => import('@/pages/Settings.vue'), meta: { title: 'Settings' } },
+        { path: 'activity', name: 'activity', component: () => import('@/pages/Activity.vue'), meta: { title: 'Activity' } },
+        { path: 'admin/logs', name: 'admin-logs', component: () => import('@/pages/AdminLogs.vue'), meta: { role: 'admin', title: 'System Logs' } },
+        { path: 'admin/roles', name: 'admin-roles', component: () => import('@/pages/AdminRoles.vue'), meta: { role: 'admin', title: 'Roles' } },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: () => `/${defaultLocale}/dashboard` },

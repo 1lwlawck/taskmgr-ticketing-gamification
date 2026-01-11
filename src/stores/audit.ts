@@ -20,7 +20,10 @@ export const useAuditStore = defineStore('audit', {
     async fetchEntries(options?: { limit?: number; cursor?: string; append?: boolean }) {
       const { limit = 50, cursor, append = false } = options || {}
       if (append && !this.nextCursor) return
-      this.loading = !append
+      // Background Refresh
+      if (!append && this.entries.length === 0) {
+        this.loading = true
+      }
       try {
         const params: Record<string, any> = { limit }
         if (append && this.nextCursor) {

@@ -34,7 +34,7 @@
             <Button variant="secondary" class="border border-white/30 bg-white/15 text-white hover:bg-white/25" @click="showJoin = true">
               {{ t('projects.join') }}
             </Button>
-            <Button class="bg-white text-white disabled:cursor-not-allowed disabled:opacity-60 hover:bg-slate-200" :disabled="!canCreateProject" @click="showModal = true">
+            <Button class="border-0 bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/25 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canCreateProject" @click="showModal = true">
               {{ t('projects.create') }}
             </Button>
           </div>
@@ -66,17 +66,17 @@
         </div>
         <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
           <div class="flex flex-1 min-w-[240px] items-center gap-2">
-            <Input
-              v-model.trim="searchTerm"
+            <SearchInput
+              v-model="searchTerm"
               :placeholder="t('projects.searchPlaceholder')"
-              class="h-10 w-full rounded-2xl border-border bg-white"
-              @keyup.enter="handleSearch"
+              class="flex-1"
+              @update:model-value="runSearch"
             />
-            <select v-model="statusFilter" class="h-10 rounded-2xl border border-border bg-white px-3 text-sm text-foreground">
-              <option value="">{{ t('projects.statusAll') }}</option>
-              <option value="Active">{{ t('projects.statusActive') }}</option>
-              <option value="Archived">{{ t('projects.statusArchived') }}</option>
-            </select>
+            <Select
+              v-model="statusFilter"
+              :options="statusFilterOptions"
+              class="h-10 min-w-[140px]"
+            />
           </div>
           <div class="flex items-center gap-2">
             <Button variant="secondary" size="sm" @click="handleSearch">{{ t('projects.filterApply') }}</Button>
@@ -90,9 +90,17 @@
           <p v-if="projects.length === 0 && !loading" class="text-sm text-muted-foreground">{{ t('projects.empty') }}</p>
         </div>
         <div class="flex justify-center">
-          <Button v-if="nextCursor" :disabled="loadingMore" variant="outline" size="sm" @click="handleLoadMore">
-            {{ loadingMore ? t('common.loading') : t('common.loadMore') }}
-          </Button>
+          <Pagination
+            v-if="!pageLoading && projects.length > 0"
+            :page="page"
+            :limit="limit"
+            :has-next="!!nextCursor"
+            :has-prev="page > 1"
+            :loading="loadingMore"
+            @next="handleNextPage"
+            @prev="handlePrevPage"
+            @update:limit="handleLimitChange"
+          />
         </div>
       </div>
 
@@ -176,9 +184,13 @@ import { useAuthStore } from '@/stores/auth'
 import { Input } from '@/components/atoms/ui/input'
 import { Button } from '@/components/atoms/ui/button'
 import { useGamificationStore } from '@/stores/gamification'
+import { useDebounceFn } from '@vueuse/core'
 import type { Project } from '@/types/models'
 import { PageHeroSkeleton, StatCardsSkeleton, CardGridSkeleton } from '@/components/molecules/skeletons'
 import { Skeleton } from '@/components/atoms/ui/skeleton'
+import Select from '@/components/ui/select/Select.vue'
+import SearchInput from '@/components/ui/search-input/SearchInput.vue'
+import Pagination from '@/components/ui/pagination/Pagination.vue'
 import { useI18n } from 'vue-i18n'
 
 const projectsStore = useProjectsStore()
@@ -195,10 +207,21 @@ const form = reactive({ name: '', description: '' })
 const formErrors = reactive<{ name?: string; join?: string }>({})
 const searchTerm = ref('')
 const statusFilter = ref('')
+
+// Pagination State
+const page = ref(1)
+const limit = ref(20)
+const cursorStack = ref<Array<string | null>>([null])
 const canCreateProject = computed(() =>
   ['admin', 'project_manager'].includes(auth.currentUser?.role ?? '')
 )
 const pageLoading = computed(() => loading.value && projects.value.length === 0)
+
+const statusFilterOptions = computed(() => [
+  { value: '', label: t('projects.statusAll') },
+  { value: 'Active', label: t('projects.statusActive') },
+  { value: 'Archived', label: t('projects.statusArchived') },
+])
 
 const projectTicketCount = (project: Project) => {
   if (typeof project.ticketsCount === 'number') return project.ticketsCount
@@ -211,27 +234,50 @@ const isActiveStatus = (status?: string) => (status ?? '').toLowerCase() === 'ac
 const activeProjects = computed(() => projects.value.filter((project) => isActiveStatus(project.status)).length)
 const backlogProjects = computed(() => projects.value.filter((project) => !isActiveStatus(project.status)).length)
 
-const loadProjects = async (reset = true) => {
+const loadPage = async (cursor: string | null) => {
   await projectsStore.fetchProjects({
     q: searchTerm.value.trim(),
     status: statusFilter.value,
-    append: !reset,
-    force: reset, // ensure reload when changing filter
-  })
-}
-
-const handleSearch = async () => {
-  await loadProjects(true)
-}
-
-const handleLoadMore = async () => {
-  await projectsStore.fetchProjects({
-    q: searchTerm.value.trim(),
-    status: statusFilter.value,
-    append: true,
+    cursor,
+    limit: limit.value,
+    append: false, // Replace list
     force: true,
   })
 }
+
+const handleNextPage = async () => {
+  if (!nextCursor.value) return
+  cursorStack.value.push(nextCursor.value)
+  page.value++
+  await loadPage(nextCursor.value)
+}
+
+const handlePrevPage = async () => {
+  if (page.value <= 1) return
+  page.value--
+  const cursor = cursorStack.value[page.value - 1]
+  await loadPage(cursor)
+  cursorStack.value = cursorStack.value.slice(0, page.value)
+}
+
+const handleLimitChange = async (newLimit: number) => {
+  limit.value = newLimit
+  page.value = 1
+  cursorStack.value = [null]
+  await loadPage(null)
+}
+
+const handleSearch = async () => {
+  page.value = 1
+  cursorStack.value = [null]
+  await loadPage(null)
+}
+
+const runSearch = useDebounceFn(() => {
+  handleSearch()
+}, 300)
+
+
 
 const handleCreate = async () => {
   formErrors.name = undefined
@@ -260,7 +306,7 @@ const handleCreate = async () => {
 }
 
 onMounted(() => {
-  loadProjects(true)
+  loadPage(null)
 })
 
 const resetModal = () => {

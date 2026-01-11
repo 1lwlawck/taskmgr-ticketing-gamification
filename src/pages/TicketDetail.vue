@@ -16,15 +16,13 @@
         <div class="flex flex-wrap gap-3">
           <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm">
             {{ t('ticketDetail.status') }}:
-            <select
-              :value="ticket.status"
-              class="rounded-md border border-white/30 bg-white/15 px-3 py-1 text-white"
-              @change="updateStatus"
-            >
-              <option v-for="option in statusOptions" :key="option.value" :value="option.value" class="text-slate-900">
-                {{ option.label }}
-              </option>
-            </select>
+            <Select
+              :model-value="ticket.status"
+              :options="statusOptions"
+              variant="glass"
+              class="min-w-[130px]"
+              @update:model-value="updateStatus"
+            />
           </span>
           <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm">
             {{ t('ticketDetail.priority') }}:
@@ -43,19 +41,19 @@
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div class="rounded-lg bg-slate-50 p-3">
             <p class="text-xs uppercase text-slate-500">{{ t('ticketDetail.assignee') }}</p>
-            <div class="mt-2 flex items-center gap-2">
-              <span class="inline-block h-8 w-9 rounded-full bg-slate-200"></span>
-              <div>
-                <p class="text-slate-900">{{ assigneeName || t('ticketDetail.unassigned') }}</p>
-                <select
-                  :value="ticket.assigneeId || ''"
-                  class="mt-1 rounded-md border border-slate-200 bg-white px-5 py-1 text-sm text-slate-700"
-                  @change="updateAssignee"
-                >
-                  <option value="">{{ t('ticketDetail.unassigned') }}</option>
-                  <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
-                </select>
+            <div class="mt-2 flex items-center gap-3">
+              <div
+                class="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm ring-2 ring-white"
+                :style="getAvatarStyle(assigneeName)"
+              >
+                {{ getInitials(assigneeName) }}
               </div>
+              <Select
+                :model-value="ticket.assigneeId || ''"
+                :options="assigneeSelectOptions"
+                class="flex-1"
+                @update:model-value="updateAssignee"
+              />
             </div>
           </div>
           <div class="rounded-lg bg-indigo-50 p-3">
@@ -135,7 +133,7 @@
               :placeholder="t('ticketDetail.comments.placeholder')"
             ></textarea>
             <button
-              class="rounded-md border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 px-4 py-2 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+              class="rounded-md border-0 bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
               type="submit"
             >
               {{ t('ticketDetail.comments.post') }}
@@ -169,6 +167,7 @@ import { useAuthStore } from '@/stores/auth'
 import { PRIORITY_XP_MAP } from '@/utils/constants'
 import type { TicketStatus } from '@/utils/constants'
 import { PageHeroSkeleton, CardGridSkeleton, TableSkeleton } from '@/components/molecules/skeletons'
+import Select from '@/components/ui/select/Select.vue'
 import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
@@ -196,19 +195,20 @@ const xpReward = computed(() => PRIORITY_XP_MAP[ticket.value?.priority ?? 'mediu
 const assigneeName = computed(() => users.value.find((u) => u.id === ticket.value?.assigneeId)?.name)
 const displayStatus = computed(() => statusOptions.find((s) => s.value === ticket.value?.status)?.label ?? t('ticketDetail.statusOptions.todo'))
 
-const updateStatus = async (event: Event) => {
-  const status = (event.target as HTMLSelectElement | null)?.value as TicketStatus | undefined
-  if (!ticket.value) return
-  if (!status) return
-  await ticketsStore.updateTicketStatus(ticket.value.id, status)
+const updateStatus = async (status: string) => {
+  if (!ticket.value || !status) return
+  await ticketsStore.updateTicketStatus(ticket.value.id, status as TicketStatus)
 }
 
-const updateAssignee = async (event: Event) => {
-  const assigneeId = (event.target as HTMLSelectElement | null)?.value
+const updateAssignee = async (assigneeId: string) => {
   if (!ticket.value) return
-  if (!assigneeId) return
-  await ticketsStore.updateTicket(ticket.value.id, { assigneeId })
+  await ticketsStore.updateTicket(ticket.value.id, { assigneeId: assigneeId || undefined })
 }
+
+const assigneeSelectOptions = computed(() => [
+  { value: '', label: t('ticketDetail.unassigned') },
+  ...users.value.map((u) => ({ value: u.id, label: u.name }))
+])
 
 const addComment = async () => {
   if (!commentText.value || !ticket.value) return
@@ -241,4 +241,30 @@ onMounted(async () => {
     loadingTicket.value = false
   }
 })
+
+const getInitials = (name?: string) => {
+  if (!name) return '?'
+  return name
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+const getAvatarStyle = (name?: string) => {
+  // Simple palette similar to other components
+  if (!name) return { background: '#cbd5e1' } // slate-300
+  const palette = [
+    ['#6366F1', '#22D3EE'], // Indigo-Cyan
+    ['#7C3AED', '#60A5FA'], // Violet-Blue
+    ['#06B6D4', '#0EA5E9'], // Cyan-Sky
+    ['#4F46E5', '#818CF8'], // Indigo-IndigoLight
+  ]
+  const hash = name.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
+  const colors = palette[hash % palette.length]
+  return {
+    background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`,
+  }
+}
 </script>

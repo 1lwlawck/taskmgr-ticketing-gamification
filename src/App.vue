@@ -1,5 +1,9 @@
 ﻿<template>
-  <RouterView />
+  <OfflineBanner :show="!isOnline" />
+  <ErrorBoundary>
+    <RouterView />
+  </ErrorBoundary>
+  <ToastContainer />
 </template>
 
 <script setup lang="ts">
@@ -10,6 +14,11 @@ import { useProjectsStore } from '@/stores/projects'
 import { useTicketsStore } from '@/stores/tickets'
 import { useUsersStore } from '@/stores/users'
 import { useAuditStore } from '@/stores/audit'
+import { useNetwork } from '@/composables/useNetwork'
+
+import ToastContainer from '@/components/atoms/ToastContainer.vue'
+import ErrorBoundary from '@/components/atoms/ErrorBoundary.vue'
+import OfflineBanner from '@/components/atoms/OfflineBanner.vue'
 
 const auth = useAuthStore()
 const gamification = useGamificationStore()
@@ -17,6 +26,9 @@ const projects = useProjectsStore()
 const tickets = useTicketsStore()
 const users = useUsersStore()
 const audit = useAuditStore()
+
+// Network status detection
+const { isOnline } = useNetwork()
 
 const canManageUsers = () => ['admin', 'project_manager'].includes(auth.currentUser?.role ?? '')
 
@@ -65,3 +77,4 @@ watch(
   }
 )
 </script>
+

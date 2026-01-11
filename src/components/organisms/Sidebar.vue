@@ -6,7 +6,7 @@
           class="relative h-10 w-10 overflow-hidden rounded-full shadow-lg ring-2 ring-indigo-100 ring-offset-2 ring-offset-white"
           :style="avatarGradient(currentUser?.name)"
         >
-          <span class="absolute inset-0 bg-gradient-to-br from-indigo-500 via-sky-400 to-emerald-400 opacity-80"></span>
+          <span class="absolute inset-0 bg-black/10"></span>
           <span class="relative flex h-full w-full items-center justify-center text-sm font-semibold uppercase text-white drop-shadow">
             {{ initials }}
           </span>
@@ -30,115 +30,179 @@
       </p>
     </SidebarHeader>
 
-    <SidebarContent class="flex flex-col gap-4 px-2 py-4">
-      <SidebarMenu class="space-y-2">
-
-        <SidebarMenuItem v-for="item in primaryNav" :key="item.to">
-          <SidebarMenuButton
-            :is-active="isActive(item.to)"
-            :class="[
-              'w-full flex items-center gap-4 rounded-8 px-4 py-3 text-base transition-all',
-              isActive(item.to)
-                ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-semibold [&_span]:text-white'
-                : 'text-slate-600 hover:bg-white hover:border hover:border-indigo-100 hover:text-slate-900 font-semibold shadow-sm'
-            ]"
-            :style="isActive(item.to) ? activeGradientStyle : undefined"
-            @click="navigateTo(item.to)"
-          >
-            <span class="h-5 w-5 text-slate-500 transition-colors" v-html="ICONS[item.icon]"></span>
-            <span class="flex-1 truncate">{{ item.label }}</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-
-        <!-- PROJECTS SECTION (langsung setelah Dashboard) -->
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            :is-active="isActive('/projects')"
-            :class="[
-              'w-full flex items-center gap-4 rounded-md px-4 py-3 text-base transition-all',
-              isActive('/projects')
-                ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-semibold [&_span]:text-white'
-                : 'text-slate-600 hover:bg-white hover:border hover:border-indigo-100 hover:text-slate-900 shadow-sm'
-            ]"
-            :style="isActive('/projects') ? activeGradientStyle : undefined"
-            @click="navigateTo('/projects')"
-          >
-            <span class="h-5 w-5 text-slate-500 transition-colors" v-html="ICONS.projects"></span>
-            <span class="flex-1 truncate font-semibold">{{ t('nav.projects') }}</span>
-            <span class="text-xs uppercase text-slate-400 font-semibold">{{ t('nav.team') }}</span>
-          </SidebarMenuButton>
-
-          <!-- Sub menu (Projects list) -->
-          <SidebarMenuSub class="mt-2 space-y-1">
-            <!-- Highlighted Projects -->
-            <SidebarMenuSubItem
-              v-for="project in highlightedProjects"
-              :key="project.id"
-            >
-              <SidebarMenuSubButton
-                :is-active="project.id === activeProjectId"
-                size="sm"
+    <SidebarContent class="flex flex-1 flex-col justify-between px-2 py-4">
+      <div class="flex flex-col gap-6">
+        <!-- OVERVIEW SECTION -->
+        <div class="space-y-2">
+          <p class="px-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ t('nav.categories.overview') }}</p>
+          <SidebarMenu class="space-y-1">
+            <SidebarMenuItem v-for="item in overviewNav" :key="item.to">
+              <SidebarMenuButton
+                :is-active="isActive(item.to)"
                 :class="[
-                  'w-full flex items-center justify-between rounded-8 px-4 py-3 text-sm transition-all',
-                  project.id === activeProjectId
-                    ? 'border border-slate-800 text-white shadow backdrop-blur font-medium shadow-indigo-500/25 [&_span]:text-white'
-                    : 'text-slate-600 hover:bg-white hover:border hover:border-indigo-100 hover:text-slate-900 shadow-sm'
+                  'w-full flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all',
+                  isActive(item.to)
+                    ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-bold [&_span]:text-white'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-semibold'
                 ]"
-                :style="project.id === activeProjectId ? activeGradientStyle : undefined"
-                @click="navigateTo('/projects')"
+                :style="isActive(item.to) ? activeGradientStyle : undefined"
+                @click="navigateTo(item.to)"
               >
-                <span class="truncate mr-8">{{ project.name }}</span>
-                <SidebarMenuBadge class="!text-xs !font-semibold text-white">
-                  {{ project.status }}
-                </SidebarMenuBadge>
-              </SidebarMenuSubButton>
-            </SidebarMenuSubItem>
+                <span class="h-4 w-4 text-slate-500 transition-colors" v-html="ICONS[item.icon]"></span>
+                <span class="flex-1 truncate">{{ item.label }}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
 
-            <!-- View all -->
-            <SidebarMenuSubItem>
-              <SidebarMenuSubButton
-                size="sm"
+        <!-- WORKSPACE SECTION -->
+        <div class="space-y-2">
+          <p class="px-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ t('nav.categories.workspace') }}</p>
+          <SidebarMenu class="space-y-1">
+            <!-- Projects with submenu -->
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                :is-active="isActive('/projects')"
                 :class="[
-                  'w-full flex items-center justify-between rounded-8 px-4 py-3 text-sm transition-all',
+                  'w-full flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all',
                   isActive('/projects')
-                    ? 'border border-slate-800 text-white shadow backdrop-blur font-medium shadow-indigo-500/25 [&_span]:text-white'
-                    : 'text-slate-600 hover:bg-white hover:border hover:border-indigo-100 hover:text-slate-900 shadow-sm'
+                    ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-bold'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-semibold'
                 ]"
                 :style="isActive('/projects') ? activeGradientStyle : undefined"
                 @click="navigateTo('/projects')"
               >
-                <span>{{ t('nav.viewAllProjects') }}</span>
-                <span class="text-xs font-semibold text-slate-500">
-                  {{ projects?.length ?? 0 }}
-                </span>
-              </SidebarMenuSubButton>
-            </SidebarMenuSubItem>
-          </SidebarMenuSub>
-        </SidebarMenuItem>
+                <span class="h-4 w-4 transition-colors" :class="isActive('/projects') ? 'text-white' : 'text-slate-500'" v-html="ICONS.projects"></span>
+                <span class="flex-1 truncate" :class="isActive('/projects') ? 'text-white' : ''">{{ t('nav.projects') }}</span>
+                <span 
+                  class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                  :class="isActive('/projects') ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
+                >{{ projects?.length ?? 0 }}</span>
+              </SidebarMenuButton>
 
-        <!-- MAIN NAV (menu lain: Tickets, Leaderboard, Profile, Admin) -->
-        <SidebarMenuItem v-for="item in secondaryNav" :key="item.to">
-          <SidebarMenuButton
-            :is-active="isActive(item.to)"
-            :class="[
-              'w-full flex items-center gap-4 rounded-8 px-4 py-3 text-base transition-all',
-              isActive(item.to)
-                ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-semibold [&_span]:text-white'
-                : 'text-slate-600 hover:bg-white hover:border hover:border-indigo-100 hover:text-slate-900 font-semibold shadow-sm'
-            ]"
-            :style="isActive(item.to) ? activeGradientStyle : undefined"
-            @click="navigateTo(item.to)"
-          >
-            <span class="h-5 w-5 text-slate-500 transition-colors" v-html="ICONS[item.icon]"></span>
-            <span class="flex-1 truncate">{{ item.label }}</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
+              <!-- Projects submenu -->
+              <SidebarMenuSub class="mt-1 ml-5 space-y-0.5 border-l border-slate-200 pl-3">
+                <SidebarMenuSubItem v-for="project in highlightedProjects" :key="project.id">
+                  <SidebarMenuSubButton
+                    :is-active="project.id === activeProjectId"
+                    size="sm"
+                    :class="[
+                      'w-full flex items-center justify-between gap-2 rounded-md px-3 py-1.5 text-xs transition-colors',
+                      project.id === activeProjectId
+                        ? 'bg-indigo-50 text-indigo-700 font-bold border-l-2 border-indigo-500 -ml-px'
+                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 font-medium'
+                    ]"
+                    @click="navigateTo(`/projects/${project.id}`)"
+                  >
+                    <span class="truncate">{{ project.name }}</span>
+                    <span 
+                      class="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium"
+                      :class="project.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'"
+                    >
+                      {{ project.status }}
+                    </span>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              </SidebarMenuSub>
+            </SidebarMenuItem>
 
-      </SidebarMenu>
+            <!-- Other workspace items -->
+            <SidebarMenuItem v-for="item in workspaceNav" :key="item.to">
+              <SidebarMenuButton
+                :is-active="isActive(item.to)"
+                :class="[
+                  'w-full flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all',
+                  isActive(item.to)
+                    ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-semibold [&_span]:text-white'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                ]"
+                :style="isActive(item.to) ? activeGradientStyle : undefined"
+                @click="navigateTo(item.to)"
+              >
+                <span class="h-4 w-4 text-slate-500 transition-colors" v-html="ICONS[item.icon]"></span>
+                <span class="flex-1 truncate">{{ item.label }}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
 
-      <SidebarSeparator class="border-border opacity-40" />
+        <!-- COMMUNITY SECTION -->
+        <div class="space-y-2">
+          <p class="px-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ t('nav.categories.community') }}</p>
+          <SidebarMenu class="space-y-1">
+            <SidebarMenuItem v-for="item in communityNav" :key="item.to">
+              <SidebarMenuButton
+                :is-active="isActive(item.to)"
+                :class="[
+                  'w-full flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all',
+                  isActive(item.to)
+                    ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-semibold [&_span]:text-white'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                ]"
+                :style="isActive(item.to) ? activeGradientStyle : undefined"
+                @click="navigateTo(item.to)"
+              >
+                <span class="h-4 w-4 text-slate-500 transition-colors" v-html="ICONS[item.icon]"></span>
+                <span class="flex-1 truncate">{{ item.label }}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
 
-      <SidebarGroup class="space-y-3 px-1">
+        <!-- ACCOUNT SECTION -->
+        <div class="space-y-2">
+          <p class="px-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ t('nav.categories.account') }}</p>
+          <SidebarMenu class="space-y-1">
+            <SidebarMenuItem v-for="item in accountNav" :key="item.to">
+              <SidebarMenuButton
+                :is-active="isActive(item.to)"
+                :class="[
+                  'w-full flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all',
+                  isActive(item.to)
+                    ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-semibold [&_span]:text-white'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                ]"
+                :style="isActive(item.to) ? activeGradientStyle : undefined"
+                @click="navigateTo(item.to)"
+              >
+                <span class="h-4 w-4 text-slate-500 transition-colors" v-html="ICONS[item.icon]"></span>
+                <span class="flex-1 truncate">{{ item.label }}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
+
+        <!-- ADMIN SECTION (only for admins) -->
+        <div v-if="adminNav.length" class="space-y-2">
+          <p class="px-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ t('nav.categories.admin') }}</p>
+          <SidebarMenu class="space-y-1">
+            <SidebarMenuItem v-for="item in adminNav" :key="item.to">
+              <SidebarMenuButton
+                :is-active="isActive(item.to)"
+                :class="[
+                  'w-full flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all',
+                  isActive(item.to)
+                    ? 'border border-slate-800 text-white shadow-md shadow-indigo-500/25 backdrop-blur font-bold [&_span]:text-white'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-semibold'
+                ]"
+                :style="isActive(item.to) ? activeGradientStyle : undefined"
+                @click="navigateTo(item.to)"
+              >
+                <span 
+                  class="h-4 w-4 text-slate-500 transition-colors" 
+                  v-html="ICONS[item.icon]"
+                ></span>
+                <span class="flex-1 truncate">{{ item.label }}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <SidebarSeparator class="border-border opacity-40" />
+
+        <SidebarGroup class="space-y-3 px-1">
         <div class="flex items-center justify-between">
           <p class="text-xs uppercase tracking-[0.3em] text-slate-400">
             Streak
@@ -170,14 +234,15 @@
         <Button variant="outline" size="sm" class="w-full hover:border-indigo-200 hover:text-indigo-700" @click="handleLogout">
           {{ t('sidebar.logout') }}
         </Button>
-      </SidebarGroup>
-      <ConfirmModal
-        :open="logoutConfirm"
-        :title="t('sidebar.logoutTitle')"
-        :message="t('sidebar.logoutMessage')"
-        @cancel="logoutConfirm = false"
-        @confirm="confirmLogout"
-      />
+        </SidebarGroup>
+        <ConfirmModal
+          :open="logoutConfirm"
+          :title="t('sidebar.logoutTitle')"
+          :message="t('sidebar.logoutMessage')"
+          @cancel="logoutConfirm = false"
+          @confirm="confirmLogout"
+        />
+      </div>
     </SidebarContent>
   </SidebarRoot>
 </template>
@@ -245,6 +310,26 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M5 21v-2a7 7 0 1 1 14 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   shield:
     '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 6v6c0 5 3.5 9 8 9s8-4 8-9V6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 13h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  reports:
+    '<svg viewBox="0 0 24 24" fill="none"><path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  calendar:
+    '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  kanban:
+    '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="18" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="12" rx="1" stroke="currentColor" stroke-width="2"/></svg>',
+  team:
+    '<svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  achievements:
+    '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="6" stroke="currentColor" stroke-width="2"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  challenges:
+    '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2"/></svg>',
+  settings:
+    '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.79 1.03 1.51 1.08H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  activity:
+    '<svg viewBox="0 0 24 24" fill="none"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  logs:
+    '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><polyline points="12 6 12 12 16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  roles:
+    '<svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 } as const
 
 type IconKey = keyof typeof ICONS
@@ -254,29 +339,50 @@ interface NavItem {
   to: string
   icon: IconKey
   role?: Role
+  category: 'overview' | 'workspace' | 'community' | 'account' | 'admin'
 }
 
 const nav = computed<NavItem[]>(() => [
-  { label: t('nav.dashboard'), to: '/dashboard', icon: 'dashboard' },
-  { label: t('nav.epics'), to: '/epics', icon: 'epics' },
-  { label: t('nav.tickets'), to: '/tickets', icon: 'tickets' },
-  { label: t('nav.leaderboard'), to: '/leaderboard', icon: 'leaderboard' },
-  { label: t('nav.profile'), to: '/profile', icon: 'profile' },
-  { label: t('nav.admin'), to: '/admin/users', icon: 'shield', role: 'admin' },
+  { label: t('nav.dashboard'), to: '/dashboard', icon: 'dashboard', category: 'overview' },
+  { label: t('nav.reports'), to: '/reports', icon: 'reports', category: 'overview' },
+  { label: t('nav.epics'), to: '/epics', icon: 'epics', category: 'workspace' },
+  { label: t('nav.tickets'), to: '/tickets', icon: 'tickets', category: 'workspace' },
+  { label: t('nav.calendar'), to: '/calendar', icon: 'calendar', category: 'workspace' },
+  { label: t('nav.kanban'), to: '/kanban', icon: 'kanban', category: 'workspace' },
+  { label: t('nav.team'), to: '/team', icon: 'team', category: 'workspace' },
+  { label: t('nav.leaderboard'), to: '/leaderboard', icon: 'leaderboard', category: 'community' },
+  { label: t('nav.achievements'), to: '/achievements', icon: 'achievements', category: 'community' },
+  { label: t('nav.challenges'), to: '/challenges', icon: 'challenges', category: 'community' },
+  { label: t('nav.profile'), to: '/profile', icon: 'profile', category: 'account' },
+  { label: t('nav.settings'), to: '/settings', icon: 'settings', category: 'account' },
+  { label: t('nav.activity'), to: '/activity', icon: 'activity', category: 'account' },
+  { label: t('nav.admin'), to: '/admin/roles', icon: 'shield', role: 'admin', category: 'admin' },
+  { label: t('nav.adminLogs'), to: '/admin/logs', icon: 'logs', role: 'admin', category: 'admin' },
 ])
 
 const mainNav = computed(() =>
   nav.value.filter((item) => !item.role || currentUser.value?.role === item.role)
 )
 
-// Dashboard saja
-const primaryNav = computed(() =>
-  mainNav.value.filter((item) => item.to === '/dashboard')
+// Categorized navigation
+const overviewNav = computed(() =>
+  mainNav.value.filter((item) => item.category === 'overview')
 )
 
-// Menu lain setelah Projects
-const secondaryNav = computed(() =>
-  mainNav.value.filter((item) => item.to !== '/dashboard')
+const workspaceNav = computed(() =>
+  mainNav.value.filter((item) => item.category === 'workspace')
+)
+
+const communityNav = computed(() =>
+  mainNav.value.filter((item) => item.category === 'community')
+)
+
+const accountNav = computed(() =>
+  mainNav.value.filter((item) => item.category === 'account')
+)
+
+const adminNav = computed(() =>
+  mainNav.value.filter((item) => item.category === 'admin')
 )
 
 const highlightedProjects = computed(() =>
@@ -286,7 +392,15 @@ const highlightedProjects = computed(() =>
   }))
 )
 
-const activeProjectId = computed(() => projects.value[0]?.id ?? null)
+const activeProjectId = computed(() => {
+  // Get project ID from current route
+  const pathParts = route.path.split('/')
+  const projectsIndex = pathParts.findIndex(p => p === 'projects')
+  if (projectsIndex !== -1 && pathParts[projectsIndex + 1]) {
+    return pathParts[projectsIndex + 1]
+  }
+  return null
+})
 
 const projectBonus = computed(() =>
   projects.value.length >= 3 ? t('sidebar.projectHighlight') : t('sidebar.projectStart')

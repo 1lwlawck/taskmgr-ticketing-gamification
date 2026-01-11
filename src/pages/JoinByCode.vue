@@ -9,7 +9,7 @@
       </label>
       <button
         type="submit"
-        class="rounded-md border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 px-4 py-2 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+        class="rounded-md border-0 bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
       >
         {{ t('join.submit') }}
       </button>

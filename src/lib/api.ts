@@ -1,13 +1,55 @@
-import axios from 'axios'
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/auth'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
 const apiKey = import.meta.env.VITE_API_KEY
 
+// Retry configuration
+const RETRY_COUNT = 3
+const RETRY_DELAY_BASE = 1000 // 1 second base delay
+
 export const api = axios.create({
   baseURL,
   timeout: 15000,
 })
+
+// Helper to check if error is retryable (network errors only, not 4xx/5xx)
+const isRetryableError = (error: AxiosError) => {
+  // Network errors (no response received)
+  if (!error.response) {
+    return error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK' || error.message.includes('Network Error')
+  }
+  return false
+}
+
+// Retry interceptor
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const config = error.config as InternalAxiosRequestConfig & { _retryCount?: number }
+    
+    if (!config || !isRetryableError(error)) {
+      return Promise.reject(error)
+    }
+    
+    config._retryCount = config._retryCount ?? 0
+    
+    if (config._retryCount >= RETRY_COUNT) {
+      return Promise.reject(error)
+    }
+    
+    config._retryCount += 1
+    
+    // Exponential backoff: 1s, 2s, 4s
+    const delay = RETRY_DELAY_BASE * Math.pow(2, config._retryCount - 1)
+    
+    console.warn(`[API] Retrying request (${config._retryCount}/${RETRY_COUNT}) after ${delay}ms...`)
+    
+    await new Promise((resolve) => setTimeout(resolve, delay))
+    
+    return api(config)
+  }
+)
 
 if (apiKey) {
   api.defaults.headers.common['X-API-Key'] = apiKey

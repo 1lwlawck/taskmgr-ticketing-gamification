@@ -1,20 +1,23 @@
 <template>
   <header class="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 shadow-sm topbar-blurable">
     <div class="flex items-center gap-3">
-      <button class="text-slate-500 lg:hidden" @click="toggleSidebar">?</button>
+      <button class="text-slate-500 lg:hidden" @click="toggleSidebar">☰</button>
 
-      <!-- <form @submit.prevent="handleSearch">
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ t('components.topbar.searchLabel') }}</p>
-        <div class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-1 text-sm text-slate-600">
-          <span>?</span>
+      <form @submit.prevent="handleSearch" class="hidden sm:block">
+        <div class="group flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm transition-all duration-200 hover:border-slate-300 hover:bg-white hover:shadow-sm focus-within:border-indigo-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:shadow-md">
+          <svg class="h-4 w-4 text-slate-400 transition-colors group-focus-within:text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
           <input
             type="text"
-            class="flex-1 bg-transparent placeholder-slate-400 focus:outline-none"
+            class="w-48 bg-transparent text-slate-700 placeholder-slate-400 focus:outline-none lg:w-64"
             :placeholder="t('components.topbar.searchPlaceholder')"
             v-model="search"
           />
+          <kbd class="hidden rounded bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 lg:inline-block">⌘K</kbd>
         </div>
-      </form> -->
+      </form>
     </div>
     
     <div class="flex items-center gap-4">
@@ -50,7 +53,7 @@
             class="relative h-8 w-8 overflow-hidden rounded-full shadow ring-2 ring-indigo-100 ring-offset-2 ring-offset-white"
             :style="avatarGradient(currentUser?.name)"
           >
-            <span class="absolute inset-0 bg-gradient-to-br from-indigo-500 via-sky-400 to-emerald-400 opacity-80"></span>
+            <span class="absolute inset-0 bg-black/10"></span>
             <span class="relative flex h-full w-full items-center justify-center text-xs font-semibold uppercase text-white drop-shadow">
               {{ initials }}
             </span>
@@ -115,7 +118,9 @@ const avatarGradient = (seed = '') => {
     ['#6366F1', '#22D3EE', '#34D399'],
     ['#7C3AED', '#60A5FA', '#2DD4BF'],
     ['#06B6D4', '#0EA5E9', '#8B5CF6'],
-    ['#F59E0B', '#F97316', '#EC4899'],
+    ['#06B6D4', '#0EA5E9', '#8B5CF6'],
+    // ['#F59E0B', '#F97316', '#EC4899'], // Removed (Orange)
+    ['#4F46E5', '#818CF8', '#A5B4FC'], // Added (Indigo/Blue)
   ]
   const hash = seed.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
   const colors = palette[hash % palette.length]

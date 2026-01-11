@@ -54,7 +54,7 @@
         <div class="flex flex-wrap gap-3">
           <Button
             variant="secondary"
-            class="border-0 bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-110"
+            class="border-0 bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 transition hover:bg-indigo-700"
             @click="openCreate"
           >
             {{ t('tickets.newTicket') }}
@@ -101,18 +101,15 @@
   <AppCard :title="t('tickets.queueTitle')" :description="t('tickets.queueDesc')">
       <template #action>
       <div class="flex flex-wrap items-center gap-3">
-        <div class="relative">
-          <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            v-model="searchTerm"
-            :placeholder="t('tickets.searchPlaceholder')"
-            class="w-64 bg-transparent pl-9"
-            @input="runSearch"
-          />
-        </div>
+        <SearchInput
+          v-model="searchTerm"
+          :placeholder="t('tickets.searchPlaceholder')"
+          class="w-72"
+          @update:model-value="runSearch"
+        />
         <Button
           size="sm"
-          class="border-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
+          class="border-0 bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/25 transition hover:brightness-110"
           @click="openCreate"
         >
           {{ t('tickets.newTicket') }}
@@ -139,17 +136,19 @@
         </button>
         <div class="ml-auto flex flex-wrap items-center gap-2">
           <span class="text-xs uppercase text-muted-foreground">{{ t('tickets.filters.assignee') }}</span>
-          <select v-model="assigneeFilter" class="rounded-md border px-3 py-1 text-xs font-medium" @change="runSearch">
-            <option value="all">{{ t('tickets.filters.all') }}</option>
-            <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
-          </select>
+          <Select
+            v-model="assigneeFilter"
+            :options="assigneeFilterOptions"
+            class="min-w-[140px]"
+            @change="runSearch"
+          />
           <span class="text-xs uppercase text-muted-foreground">{{ t('tickets.filters.epic') }}</span>
-          <select v-model="epicFilter" class="rounded-md border px-3 py-1 text-xs font-medium" @change="runSearch">
-            <option value="all">{{ t('tickets.filters.allEpics') }}</option>
-            <option v-for="epic in epicsByProject" :key="epic.id" :value="epic.id">
-              {{ epic.title }} ({{ epic.doneCount ?? 0 }}/{{ epic.totalCount ?? 0 }})
-            </option>
-          </select>
+          <Select
+            v-model="epicFilter"
+            :options="epicFilterOptions"
+            class="min-w-[180px]"
+            @change="runSearch"
+          />
           <Button variant="ghost" size="xs" class="text-muted-foreground" @click="resetFilters">
             {{ t('tickets.filters.reset') }}
           </Button>
@@ -212,10 +211,18 @@
         <p v-if="filteredTickets.length === 0" class="px-4 py-6 text-center text-sm text-muted-foreground">
           {{ t('tickets.table.empty') }}
         </p>
-        <div class="flex justify-center bg-card p-3">
-          <Button v-if="nextCursor" :disabled="loadingMore" variant="outline" size="sm" @click="loadMore">
-            {{ loadingMore ? t('common.loading') : t('common.loadMore') }}
-          </Button>
+        <div class="flex justify-center bg-card p-0">
+          <Pagination
+            v-if="!pageLoading && tickets.length > 0"
+            :page="page"
+            :limit="limit"
+            :has-next="!!nextCursor"
+            :has-prev="page > 1"
+            :loading="ticketsLoading"
+            @next="handleNextPage"
+            @prev="handlePrevPage"
+            @update:limit="handleLimitChange"
+          />
         </div>
       </div>
     </AppCard>
@@ -247,10 +254,11 @@
         <div class="mb-3 flex items-center justify-between text-xs text-muted-foreground">
           <div class="flex items-center gap-2">
             <span>{{ t('tickets.epics.title') }}</span>
-            <select v-model="epicProjectFilter" class="rounded-md border px-2 py-1 text-xs font-semibold">
-              <option value="all">{{ t('tickets.epics.allProjects') }}</option>
-              <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
-            </select>
+            <Select
+              v-model="epicProjectFilter"
+              :options="projectFilterOptions"
+              class="min-w-[160px]"
+            />
           </div>
           <RouterLink :to="localePath('/epics')" class="text-primary underline">{{ t('tickets.epics.manage') }}</RouterLink>
         </div>
@@ -326,54 +334,35 @@
           <textarea v-model="form.description" rows="3" required class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm"></textarea>
           <p v-if="formErrors.description" class="text-[11px] text-rose-600">{{ formErrors.description }}</p>
         </label>
-        <label class="space-y-1">
+        <div class="space-y-1">
           <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.project') }} <span class="text-rose-500">*</span></span>
-          <select v-model="form.projectId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-            <option value="" disabled>{{ t('tickets.modal.project') }}</option>
-            <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
-          </select>
+          <Select v-model="form.projectId" :options="projectOptions" :placeholder="t('tickets.modal.project')" />
           <p v-if="formErrors.project" class="text-[11px] text-rose-600">{{ formErrors.project }}</p>
-        </label>
-        <label class="space-y-1">
+        </div>
+        <div class="space-y-1">
           <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.priority') }} <span class="text-rose-500">*</span></span>
-          <select v-model="form.priority" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </label>
-          <label class="space-y-1">
+          <Select v-model="form.priority" :options="priorityOptions" />
+        </div>
+        <div class="space-y-1">
           <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.type') }} <span class="text-rose-500">*</span></span>
-          <select v-model="form.type" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-            <option value="bug">Bug</option>
-            <option value="feature">Feature</option>
-            <option value="chore">Chore</option>
-          </select>
-        </label>
-        <label class="space-y-1">
+          <Select v-model="form.type" :options="typeOptions" />
+        </div>
+        <div class="space-y-1">
           <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.assignee') }}</span>
-          <select v-model="form.assigneeId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-            <option :value="user.id" v-for="user in assigneeOptions" :key="user.id">{{ user.name }}</option>
-          </select>
-        </label>
-        <label class="space-y-1">
+          <Select v-model="form.assigneeId" :options="formAssigneeOptions" />
+        </div>
+        <div class="space-y-1">
           <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.epic') }}</span>
-          <select v-model="form.epicId" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm">
-            <option :value="undefined">{{ t('tickets.filters.all') }}</option>
-            <option v-for="epic in epicsByProject" :key="epic.id" :value="epic.id">
-              {{ epic.title }} ({{ epic.doneCount ?? 0 }}/{{ epic.totalCount ?? 0 }})
-            </option>
-          </select>
-        </label>
-        <label class="space-y-1">
+          <Select v-model="form.epicId" :options="formEpicOptions" />
+        </div>
+        <div class="space-y-1">
           <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.startDate') }}</span>
-          <input type="date" v-model="form.startDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm" />
-        </label>
-        <label class="space-y-1">
+          <DatePicker v-model="form.startDate" :placeholder="t('tickets.modal.startDate')" />
+        </div>
+        <div class="space-y-1">
           <span class="text-xs uppercase text-slate-500">{{ t('tickets.modal.dueDate') }}</span>
-          <input type="date" v-model="form.dueDate" class="w-full rounded-xl border border-border bg-white px-3 py-2 text-slate-900 shadow-sm" />
-        </label>
+          <DatePicker v-model="form.dueDate" :placeholder="t('tickets.modal.dueDate')" />
+        </div>
           <div class="sm:col-span-2 flex justify-end gap-2">
             <Button type="button" variant="ghost" @click="closeModal">{{ t('tickets.modal.cancel') }}</Button>
             <Button type="submit">{{ t('tickets.modal.save') }}</Button>
@@ -404,6 +393,7 @@ import AppCard from '@/components/molecules/AppCard.vue'
 import { Button } from '@/components/atoms/ui/button'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/atoms/ui/input'
+import Select from '@/components/ui/select/Select.vue'
 import { Search } from 'lucide-vue-next'
 import { PageHeroSkeleton, StatCardsSkeleton, CardGridSkeleton, TableSkeleton } from '@/components/molecules/skeletons'
 import { useTicketsStore } from '@/stores/tickets'
@@ -416,6 +406,10 @@ import { formatDate } from '@/utils/helpers'
 import type { CreateTicketPayload, Ticket } from '@/types/models'
 import type { TicketPriority, TicketType } from '@/utils/constants'
 import { Skeleton } from '@/components/atoms/ui/skeleton'
+import DatePicker from '@/components/ui/date-picker/DatePicker.vue'
+import SearchInput from '@/components/ui/search-input/SearchInput.vue'
+import Pagination from '@/components/ui/pagination/Pagination.vue'
+
 import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
@@ -479,6 +473,47 @@ const form = reactive<TicketFormState>({
 })
 const formErrors = reactive<{ title?: string; project?: string; description?: string }>({})
 
+// Pagination State
+const page = ref(1)
+const limit = ref(20)
+const cursorStack = ref<Array<string | null>>([null])
+
+const loadPage = async (cursor: string | null) => {
+  await ticketsStore.fetchTicketsWithFilters({
+    projectId: epicProjectFilter.value === 'all' ? undefined : epicProjectFilter.value,
+    assigneeId: assigneeFilter.value === 'all' ? undefined : assigneeFilter.value,
+    status: statusFilter.value === 'all' ? undefined : statusFilter.value,
+    epicId: epicFilter.value === 'all' ? undefined : epicFilter.value,
+    q: searchTerm.value,
+    cursor,
+    limit: limit.value,
+    append: false, // Replace list
+    force: true
+  })
+}
+
+const handleNextPage = async () => {
+  if (!nextCursor.value) return
+  cursorStack.value.push(nextCursor.value)
+  page.value++
+  await loadPage(nextCursor.value)
+}
+
+const handlePrevPage = async () => {
+  if (page.value <= 1) return
+  page.value--
+  const cursor = cursorStack.value[page.value - 1]
+  await loadPage(cursor)
+  cursorStack.value = cursorStack.value.slice(0, page.value)
+}
+
+const handleLimitChange = async (newLimit: number) => {
+  limit.value = newLimit
+  page.value = 1
+  cursorStack.value = [null]
+  await loadPage(null)
+}
+
 watch(
   () => route.query.q,
   (val) => {
@@ -522,6 +557,54 @@ const assigneeOptions = computed(() => {
   const ids = new Set(projectMembers.value.map((m) => m.id))
   return users.value.filter((u) => ids.has(u.id))
 })
+
+// Options for filter Select components
+const assigneeFilterOptions = computed(() => [
+  { value: 'all', label: t('tickets.filters.all') },
+  ...users.value.map((u) => ({ value: u.id, label: u.name }))
+])
+
+const epicFilterOptions = computed(() => [
+  { value: 'all', label: t('tickets.filters.allEpics') },
+  ...epicsByProject.value.map((e) => ({
+    value: e.id,
+    label: `${e.title} (${e.doneCount ?? 0}/${e.totalCount ?? 0})`
+  }))
+])
+
+const projectFilterOptions = computed(() => [
+  { value: 'all', label: t('tickets.epics.allProjects') },
+  ...projects.value.map((p) => ({ value: p.id, label: p.name }))
+])
+
+const projectOptions = computed(() =>
+  projects.value.map((p) => ({ value: p.id, label: p.name }))
+)
+
+const priorityOptions = computed(() => [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+  { value: 'urgent', label: 'Urgent' },
+])
+
+const typeOptions = computed(() => [
+  { value: 'bug', label: 'Bug' },
+  { value: 'feature', label: 'Feature' },
+  { value: 'chore', label: 'Chore' },
+])
+
+const formAssigneeOptions = computed(() =>
+  assigneeOptions.value.map((u) => ({ value: u.id, label: u.name }))
+)
+
+const formEpicOptions = computed(() => [
+  { value: '', label: t('tickets.filters.all') },
+  ...epicsForForm.value.map((e) => ({
+    value: e.id,
+    label: `${e.title} (${e.doneCount ?? 0}/${e.totalCount ?? 0})`
+  }))
+])
 
 const ticketProjectIds = computed(() => new Set(tickets.value.map((t) => t.projectId).filter(Boolean)))
 const epicsForForm = computed(() => epicsStore.byProject(form.projectId))
@@ -639,14 +722,10 @@ const backlogTickets = computed(() =>
 )
 
 const runSearch = useDebounceFn(async () => {
-  await ticketsStore.fetchTicketsWithFilters({
-    projectId: epicProjectFilter.value,
-    assigneeId: assigneeFilter.value === 'all' ? '' : assigneeFilter.value,
-    status: statusFilter.value === 'all' ? '' : statusFilter.value,
-    epicId: epicFilter.value === 'all' ? '' : epicFilter.value,
-    q: searchTerm.value,
-    force: true,
-  })
+  // Reset pagination
+  page.value = 1
+  cursorStack.value = [null]
+  await loadPage(null)
 }, 300)
 
 const resetFilters = async () => {
@@ -658,18 +737,7 @@ const resetFilters = async () => {
   await runSearch()
 }
 
-const loadMore = async () => {
-  if (!nextCursor.value) return
-  await ticketsStore.fetchTicketsWithFilters({
-    projectId: epicProjectFilter.value,
-    assigneeId: assigneeFilter.value === 'all' ? '' : assigneeFilter.value,
-    status: statusFilter.value === 'all' ? '' : statusFilter.value,
-    epicId: epicFilter.value === 'all' ? '' : epicFilter.value,
-    q: searchTerm.value,
-    append: true,
-    force: true,
-  })
-}
+
 
 const formatStatus = (status) => status?.replace('_', ' ') ?? '-'
 const projectDisplay = (projectId) => projectNameById.value[projectId] ?? t('tickets.labels.unassigned')
