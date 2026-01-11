@@ -71,7 +71,9 @@
             <tr class="border-b border-border text-left text-sm text-muted-foreground">
               <th class="px-6 py-4 font-medium">{{ t('adminRoles.user') }}</th>
               <th class="px-6 py-4 font-medium">{{ t('adminRoles.username') }}</th>
+              <th class="px-6 py-4 font-medium">Email</th>
               <th class="px-6 py-4 font-medium">{{ t('adminRoles.currentRole') }}</th>
+              <th class="px-6 py-4 font-medium">Joined</th>
               <th class="px-6 py-4 font-medium">{{ t('adminRoles.changeRole') }}</th>
             </tr>
           </thead>
@@ -86,14 +88,29 @@
                   <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 text-sm font-bold text-white">
                     {{ user.name.charAt(0).toUpperCase() }}
                   </div>
-                  <span class="font-medium text-foreground">{{ user.name }}</span>
+                  <div>
+                    <span class="font-medium text-foreground">{{ user.name }}</span>
+                    <p v-if="user.bio" class="max-w-[200px] truncate text-xs text-muted-foreground">{{ user.bio }}</p>
+                  </div>
                 </div>
               </td>
               <td class="px-6 py-4 text-sm text-muted-foreground">@{{ user.username }}</td>
               <td class="px-6 py-4">
+                <div v-if="user.email" class="flex items-center gap-2">
+                  <span class="text-sm text-foreground">{{ user.email }}</span>
+                  <span v-if="user.emailVerified" class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-600" title="Verified">
+                    <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  </span>
+                </div>
+                <span v-else class="text-sm text-muted-foreground">-</span>
+              </td>
+              <td class="px-6 py-4">
                 <span :class="['inline-flex rounded-full px-2.5 py-1 text-xs font-medium', getRoleBadgeClass(user.role)]">
                   {{ formatRole(user.role) }}
                 </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-muted-foreground">
+                {{ user.createdAt ? formatDate(user.createdAt) : '-' }}
               </td>
               <td class="px-6 py-4">
                 <Select
@@ -106,7 +123,7 @@
               </td>
             </tr>
             <tr v-if="!filteredUsers.length">
-              <td colspan="4" class="px-6 py-12 text-center text-sm text-muted-foreground">
+              <td colspan="6" class="px-6 py-12 text-center text-sm text-muted-foreground">
                 {{ t('adminRoles.noUsers') }}
               </td>
             </tr>
@@ -191,6 +208,11 @@ function formatRole(role: string) {
     viewer: 'Viewer',
   }
   return labels[role] || role
+}
+
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 async function handleRoleChange(userId: string, newRole: string) {

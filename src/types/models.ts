@@ -6,10 +6,14 @@ export interface User {
   id: string
   name: string
   username: string
+  email?: string
+  emailVerified?: boolean
   role: MemberRole
   avatar?: string
+  avatarUrl?: string
   badges: string[]
   bio?: string
+  createdAt?: string
 }
 
 export interface ProjectMember {

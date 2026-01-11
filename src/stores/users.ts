@@ -22,10 +22,14 @@ const mapUser = (payload: any): User => ({
   id: payload.id,
   name: payload.name,
   username: payload.username,
+  email: payload.email ?? '',
+  emailVerified: payload.emailVerified ?? false,
   role: payload.role,
   avatar: normalizeAvatar(payload.avatarUrl),
+  avatarUrl: payload.avatarUrl ?? '',
   badges: payload.badges ?? [],
   bio: payload.bio ?? '',
+  createdAt: payload.createdAt ?? '',
 })
 
 export const useUsersStore = defineStore('users', {
